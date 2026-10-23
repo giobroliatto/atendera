@@ -2,6 +2,7 @@ import { Router, Request, Response, NextFunction } from "express";
 import prisma from "../db/prisma";
 import { agenteChatInterativo, agenteChatInterativoStream } from "../agents/agenteInterativo";
 import { validarInput } from "../guardrails/validarInput";
+import { usuarioAtual } from "../auth/token";
 
 const router = Router();
 
@@ -24,8 +25,9 @@ router.post("/", async (req: Request, res: Response, next: NextFunction) => {
       return;
     }
 
+    const usuarioId = usuarioAtual(res).id;
     const historico = await prisma.mensagemChat.findMany({
-      where: { ticketId: ticketId ?? null },
+      where: { ticketId: ticketId ?? null, usuarioId },
       orderBy: { criadoEm: "desc" },
       take: 8, // Apenas as 4 trocas mais recentes — evita contexto obsoleto que confunde o agente
     });
@@ -38,6 +40,7 @@ router.post("/", async (req: Request, res: Response, next: NextFunction) => {
 
     const resposta = await agenteChatInterativo(
       ticketId ?? null,
+      usuarioId,
       mensagem,
       historicoFormatado
     );
@@ -73,8 +76,9 @@ router.post("/stream", async (req: Request, res: Response) => {
     return;
   }
 
+  const usuarioId = usuarioAtual(res).id;
   const historico = await prisma.mensagemChat.findMany({
-    where: { ticketId: ticketId ?? null },
+    where: { ticketId: ticketId ?? null, usuarioId },
     orderBy: { criadoEm: "desc" },
     take: 8,
   });
@@ -93,6 +97,7 @@ router.post("/stream", async (req: Request, res: Response) => {
     let respostaAcumulada = '';
     await agenteChatInterativoStream(
       ticketId ?? null,
+      usuarioId,
       mensagem,
       historicoFormatado,
       (chunk) => {
@@ -105,8 +110,8 @@ router.post("/stream", async (req: Request, res: Response) => {
     );
     await prisma.mensagemChat.createMany({
       data: [
-        { ticketId: ticketId ?? null, role: "user",      conteudo: mensagem },
-        { ticketId: ticketId ?? null, role: "assistant", conteudo: respostaAcumulada || "Sem resposta" },
+        { ticketId: ticketId ?? null, usuarioId, role: "user",      conteudo: mensagem },
+        { ticketId: ticketId ?? null, usuarioId, role: "assistant", conteudo: respostaAcumulada || "Sem resposta" },
       ],
     });
     res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
@@ -117,13 +122,13 @@ router.post("/stream", async (req: Request, res: Response) => {
   }
 });
 
-// GET /chat/historico — retorna histórico de mensagens (opcional: filtrado por ticket)
+// GET /chat/historico — histórico do usuário logado (opcional: filtrado por ticket)
 router.get("/historico", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const ticketId = req.query.ticketId ? Number(req.query.ticketId) : undefined;
 
     const mensagens = await prisma.mensagemChat.findMany({
-      where: { ticketId: ticketId ?? null },
+      where: { ticketId: ticketId ?? null, usuarioId: usuarioAtual(res).id },
       orderBy: { criadoEm: "asc" },
       take: 50,
     });
@@ -134,10 +139,10 @@ router.get("/historico", async (req: Request, res: Response, next: NextFunction)
   }
 });
 
-// DELETE /chat/historico — apaga todas as mensagens do chat geral (ticketId = null)
+// DELETE /chat/historico — apaga as mensagens do chat geral (ticketId = null) do usuário logado
 router.delete("/historico", async (_req: Request, res: Response, next: NextFunction) => {
   try {
-    const { count } = await prisma.mensagemChat.deleteMany({ where: { ticketId: null } });
+    const { count } = await prisma.mensagemChat.deleteMany({ where: { ticketId: null, usuarioId: usuarioAtual(res).id } });
     res.json({ ok: true, removidas: count });
   } catch (err) {
     next(err);

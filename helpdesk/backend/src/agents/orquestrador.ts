@@ -61,6 +61,7 @@ export async function classificarIntencao(mensagem: string): Promise<AgenteRotea
 
 export async function orquestradorStream(
   ticketId: number | null,
+  usuarioId: number | null,
   mensagemUsuario: string,
   historico: Array<{ role: "user" | "assistant"; content: string }>,
   onAgente: (agente: AgenteRoteado) => void,
@@ -72,7 +73,7 @@ export async function orquestradorStream(
   if (agente === "ambos") {
     // Intenção mista: roda o agente interativo primeiro (ação) e depois o de relatórios (consulta)
     onAgente("interativo");
-    await agenteChatInterativoStream(ticketId, mensagemUsuario, historico, onChunk, onAcaoProposta);
+    await agenteChatInterativoStream(ticketId, usuarioId, mensagemUsuario, historico, onChunk, onAcaoProposta);
     onAgente("relatorio");
     await agenteRelatorioStream(mensagemUsuario, onChunk);
   } else {
@@ -80,7 +81,7 @@ export async function orquestradorStream(
     if (agente === "relatorio") {
       await agenteRelatorioStream(mensagemUsuario, onChunk);
     } else {
-      await agenteChatInterativoStream(ticketId, mensagemUsuario, historico, onChunk, onAcaoProposta);
+      await agenteChatInterativoStream(ticketId, usuarioId, mensagemUsuario, historico, onChunk, onAcaoProposta);
     }
   }
 }

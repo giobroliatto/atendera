@@ -46,7 +46,11 @@ function paraProposta(acao: { id: number; tipo: string; ticketId: number; descri
 }
 
 // Valida os argumentos, confere se o ticket existe e registra a proposta
-export async function proporAcao(tipo: FerramentaEscrita, input: Record<string, unknown>): Promise<AcaoProposta> {
+export async function proporAcao(
+  tipo: FerramentaEscrita,
+  input: Record<string, unknown>,
+  usuarioId: number | null
+): Promise<AcaoProposta> {
   const args = validarArgs(argsSchemas[tipo], input);
 
   const ticket = await prisma.ticket.findUnique({ where: { id: args.id } });
@@ -65,23 +69,27 @@ export async function proporAcao(tipo: FerramentaEscrita, input: Record<string, 
   }
 
   const acao = await prisma.acaoPendente.create({
-    data: { tipo, ticketId: ticket.id, dados: JSON.stringify(args), descricao },
+    data: { tipo, ticketId: ticket.id, usuarioId, dados: JSON.stringify(args), descricao },
   });
   console.log(`[HITL] Ação #${acao.id} proposta: ${descricao}`);
   return paraProposta(acao);
 }
 
+export interface ContextoHITL {
+  usuarioId?: number | null;                       // quem está conversando — só essa pessoa pode confirmar
+  onAcaoProposta?: (acao: AcaoProposta) => void;   // avisa a rota SSE para enviar o cartão ao frontend
+}
+
 // Executor usado pelos agentes do chat: leituras rodam direto, escritas viram proposta.
-// onAcaoProposta avisa a rota SSE para enviar o cartão de confirmação ao frontend.
 export async function executarToolComHITL(
   nome: string,
   input: Record<string, unknown>,
-  onAcaoProposta?: (acao: AcaoProposta) => void
+  contexto: ContextoHITL = {}
 ): Promise<unknown> {
   if (!ehFerramentaEscrita(nome)) return executarTicketTool(nome, input);
 
-  const acao = await proporAcao(nome, input);
-  onAcaoProposta?.(acao);
+  const acao = await proporAcao(nome, input, contexto.usuarioId ?? null);
+  contexto.onAcaoProposta?.(acao);
   return {
     acaoPendenteId: acao.id,
     estado: "aguardando_confirmacao",
@@ -92,26 +100,28 @@ export async function executarToolComHITL(
   };
 }
 
-// Busca a ação e explica por que ela não pode mais ser resolvida
-async function erroAcaoIndisponivel(id: number): Promise<ErroAcao> {
+// Busca a ação e explica por que ela não pode ser resolvida por este usuário
+async function erroAcaoIndisponivel(id: number, usuarioId: number): Promise<ErroAcao> {
   const acao = await prisma.acaoPendente.findUnique({ where: { id } });
   if (!acao) return new ErroAcao("Ação não encontrada.", 404);
+  if (acao.usuarioId !== usuarioId) return new ErroAcao("Esta ação foi pedida por outro usuário.", 403);
   if (acao.estado !== "pendente") return new ErroAcao(`Esta ação já foi ${acao.estado}.`, 409);
   return new ErroAcao("Esta ação expirou. Peça novamente ao assistente.", 410);
 }
 
-// Transição atômica pendente → novoEstado: dois cliques simultâneos não executam a ação duas vezes
-async function resolverAcao(id: number, novoEstado: "confirmada" | "cancelada") {
+// Transição atômica pendente → novoEstado: dois cliques simultâneos não executam a ação duas vezes.
+// Só o usuário que pediu a ação no chat pode resolvê-la.
+async function resolverAcao(id: number, novoEstado: "confirmada" | "cancelada", usuarioId: number) {
   const { count } = await prisma.acaoPendente.updateMany({
-    where: { id, estado: "pendente", criadoEm: { gte: new Date(Date.now() - EXPIRACAO_MS) } },
+    where: { id, usuarioId, estado: "pendente", criadoEm: { gte: new Date(Date.now() - EXPIRACAO_MS) } },
     data: { estado: novoEstado, resolvidoEm: new Date() },
   });
-  if (count === 0) throw await erroAcaoIndisponivel(id);
+  if (count === 0) throw await erroAcaoIndisponivel(id, usuarioId);
   return prisma.acaoPendente.findUniqueOrThrow({ where: { id } });
 }
 
-export async function confirmarAcao(id: number): Promise<{ acao: AcaoProposta; resultado: unknown }> {
-  const acao = await resolverAcao(id, "confirmada");
+export async function confirmarAcao(id: number, usuarioId: number): Promise<{ acao: AcaoProposta; resultado: unknown }> {
+  const acao = await resolverAcao(id, "confirmada", usuarioId);
   const dados = JSON.parse(acao.dados);
 
   try {
@@ -130,8 +140,8 @@ export async function confirmarAcao(id: number): Promise<{ acao: AcaoProposta; r
   }
 }
 
-export async function cancelarAcao(id: number): Promise<AcaoProposta> {
-  const acao = await resolverAcao(id, "cancelada");
+export async function cancelarAcao(id: number, usuarioId: number): Promise<AcaoProposta> {
+  const acao = await resolverAcao(id, "cancelada", usuarioId);
   console.log(`[HITL] Ação #${id} cancelada pelo usuário.`);
   return paraProposta(acao);
 }

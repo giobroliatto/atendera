@@ -3,12 +3,13 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { Mensagem, AcaoPendente } from '../models/ticket.model';
 import { lerEventosSSE } from './sse';
+import { AuthService } from '../auth/auth.service';
 
 @Injectable({ providedIn: 'root' })
 export class ChatService {
   private baseUrl = 'http://localhost:3000/chat';
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient, private auth: AuthService) {}
 
   enviarMensagem(mensagem: string, ticketId?: number): Observable<{ resposta: string }> {
     return this.http.post<{ resposta: string }>(this.baseUrl, { mensagem, ticketId });
@@ -29,7 +30,7 @@ export class ChatService {
     onErro: (motivo?: string) => void,
     ticketId?: number
   ): void {
-    fetch(`${this.baseUrl}/stream`, {
+    this.auth.fetchAutenticado(`${this.baseUrl}/stream`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ mensagem, ticketId }),
@@ -54,7 +55,7 @@ export class ChatService {
     onErro: (motivo?: string) => void,
     ticketId?: number
   ): void {
-    fetch('http://localhost:3000/orquestrador/stream', {
+    this.auth.fetchAutenticado('http://localhost:3000/orquestrador/stream', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ mensagem, ticketId }),

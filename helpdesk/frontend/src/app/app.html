@@ -2,15 +2,21 @@
   <mat-icon style="margin-right: 8px">support_agent</mat-icon>
   <span style="font-weight: 600">HelpDesk IA</span>
   <span style="flex: 1"></span>
-  <a mat-button routerLink="/tickets" routerLinkActive="active-link">
-    <mat-icon>confirmation_number</mat-icon> Tickets
-  </a>
-  <a mat-button routerLink="/chat" routerLinkActive="active-link">
-    <mat-icon>smart_toy</mat-icon> Assistente IA
-  </a>
-  <a mat-button routerLink="/logs" routerLinkActive="active-link">
-    <mat-icon>bar_chart</mat-icon> Logs IA
-  </a>
+  <ng-container *ngIf="auth.usuario() as usuario">
+    <a mat-button routerLink="/tickets" routerLinkActive="active-link">
+      <mat-icon>confirmation_number</mat-icon> Tickets
+    </a>
+    <a mat-button routerLink="/chat" routerLinkActive="active-link">
+      <mat-icon>smart_toy</mat-icon> Assistente IA
+    </a>
+    <a mat-button routerLink="/logs" routerLinkActive="active-link">
+      <mat-icon>bar_chart</mat-icon> Logs IA
+    </a>
+    <span class="usuario-logado" [title]="usuario.email">{{ usuario.nome }}</span>
+    <button mat-icon-button (click)="auth.logout()" title="Sair">
+      <mat-icon>logout</mat-icon>
+    </button>
+  </ng-container>
 </mat-toolbar>
 
 <router-outlet />

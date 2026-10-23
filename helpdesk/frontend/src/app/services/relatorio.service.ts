@@ -1,9 +1,12 @@
 import { Injectable } from '@angular/core';
 import { lerEventosSSE } from './sse';
+import { AuthService } from '../auth/auth.service';
 
 @Injectable({ providedIn: 'root' })
 export class RelatorioService {
   private baseUrl = 'http://localhost:3000/relatorio';
+
+  constructor(private auth: AuthService) {}
 
   // Streaming via fetch nativo + ReadableStream — mesmo padrão do ChatService.
   // SSE com POST não é suportado por EventSource nem HttpClient.
@@ -13,7 +16,7 @@ export class RelatorioService {
     onDone: () => void,
     onErro: (motivo?: string) => void
   ): void {
-    fetch(`${this.baseUrl}/stream`, {
+    this.auth.fetchAutenticado(`${this.baseUrl}/stream`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ mensagem }),
