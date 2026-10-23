@@ -81,7 +81,7 @@ This is the same pattern you'd use for any automatic review job: claim triage, s
 
 ## The chat: orchestrator, interactive agent and reports agent
 
-Every chat message goes to `POST /orquestrador/stream`. [`orquestrador.ts`](../helpdesk/backend/src/agents/orquestrador.ts) first classifies the intent with a tiny call (`max_tokens: 10`) and then hands the message to a specialized agent:
+Every chat message goes to `POST /orquestrador/stream`. [`orquestrador.ts`](../helpdesk/backend/src/agents/orquestrador.ts) first classifies the intent with a tiny call to Claude Haiku (`max_tokens: 10`) and then hands the message to a specialized agent:
 
 ```
 "how many tickets came in this week?"
@@ -99,7 +99,9 @@ Every chat message goes to `POST /orquestrador/stream`. [`orquestrador.ts`](../h
 | `relatorio` | [Reports](../helpdesk/backend/src/agents/agenteRelatorios.ts): stateless analytics | "tickets per priority", "anything stuck for 3 days?" |
 | `ambos` | Interactive first, then reports | "how many are open? and close ticket 9" |
 
-**Why an orchestrator instead of one big agent:** each agent keeps a short system prompt with its own tools and rules. Mixing everything into one prompt creates conflicting instructions and a bigger context on every call, while routing costs one call with `max_tokens: 10`.
+**Why an orchestrator instead of one big agent:** each agent keeps a short system prompt with its own tools and rules. Mixing everything into one prompt creates conflicting instructions and a bigger context on every call, while routing costs one Haiku call with `max_tokens: 10`.
+
+**Why Haiku with thinking off:** picking one of three words doesn't need the main model. Haiku costs $0.10 / $0.50 per million tokens against $3 / $15 for Sonnet 4.5, and answers faster, which matters because the classification runs before the user sees anything. Haiku 5.5 thinks by default, so the call sets `thinking: { type: "disabled" }`: with `max_tokens: 10`, any reasoning would use up the budget before the answer.
 
 ---
 

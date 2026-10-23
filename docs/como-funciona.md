@@ -81,7 +81,7 @@ O frontend consulta o ticket a cada 3 segundos enquanto ele está `em_analise`. 
 
 ## O chat: orquestrador, agente interativo e agente de relatórios
 
-Toda mensagem do chat vai para `POST /orquestrador/stream`. O [`orquestrador.ts`](../helpdesk/backend/src/agents/orquestrador.ts) primeiro classifica a intenção com uma chamada mínima (`max_tokens: 10`) e depois entrega a mensagem a um agente especializado:
+Toda mensagem do chat vai para `POST /orquestrador/stream`. O [`orquestrador.ts`](../helpdesk/backend/src/agents/orquestrador.ts) primeiro classifica a intenção com uma chamada mínima ao Claude Haiku (`max_tokens: 10`) e depois entrega a mensagem a um agente especializado:
 
 ```
 "quantos tickets entraram esta semana?"
@@ -99,7 +99,9 @@ Toda mensagem do chat vai para `POST /orquestrador/stream`. O [`orquestrador.ts`
 | `relatorio` | [Relatórios](../helpdesk/backend/src/agents/agenteRelatorios.ts): análises sem estado | "tickets por prioridade", "tem algo parado há 3 dias?" |
 | `ambos` | Primeiro o interativo, depois o de relatórios | "quantos estão abertos? e fecha o ticket 9" |
 
-**Por que um orquestrador em vez de um agente único:** cada agente mantém um system prompt curto, com as próprias ferramentas e regras. Juntar tudo num prompt só gera instruções conflitantes e um contexto maior em toda chamada, enquanto o roteamento custa uma chamada com `max_tokens: 10`.
+**Por que um orquestrador em vez de um agente único:** cada agente mantém um system prompt curto, com as próprias ferramentas e regras. Juntar tudo num prompt só gera instruções conflitantes e um contexto maior em toda chamada, enquanto o roteamento custa uma chamada ao Haiku com `max_tokens: 10`.
+
+**Por que Haiku e sem thinking:** escolher entre três palavras não precisa do modelo principal. O Haiku custa $0,10 / $0,50 por milhão de tokens, contra $3 / $15 do Sonnet 4.5, e responde mais rápido, o que importa porque a classificação roda antes de o usuário ver qualquer coisa. O Haiku 5.5 pensa por padrão, então a chamada envia `thinking: { type: "disabled" }`: com `max_tokens: 10`, qualquer raciocínio gastaria o limite antes da resposta.
 
 ---
 

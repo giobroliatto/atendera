@@ -98,7 +98,7 @@ flowchart LR
 | **Automático** ([`agenteAutomatico.ts`](helpdesk/backend/src/agents/agenteAutomatico.ts)) | Um ticket é criado | Classifica prioridade e categoria e sugere uma solução. Devolve JSON que é normalizado e validado antes de ser salvo. |
 | **Interativo** ([`agenteInterativo.ts`](helpdesk/backend/src/agents/agenteInterativo.ts)) | Chat | Consulta tickets com ferramentas, propõe alterações e responde em streaming. Mantém um histórico curto (últimas 8 mensagens). |
 | **Relatórios** ([`agenteRelatorios.ts`](helpdesk/backend/src/agents/agenteRelatorios.ts)) | Chat | Análises sem estado: volume por período, distribuição, tickets sem atualização (risco de SLA). |
-| **Orquestrador** ([`orquestrador.ts`](helpdesk/backend/src/agents/orquestrador.ts)) | Toda mensagem do chat | Uma chamada barata de classificação (`max_tokens: 10`) que encaminha para o agente interativo, o de relatórios ou os dois. |
+| **Orquestrador** ([`orquestrador.ts`](helpdesk/backend/src/agents/orquestrador.ts)) | Toda mensagem do chat | Uma chamada de classificação no Claude Haiku (`max_tokens: 10`, sem thinking) que encaminha para o agente interativo, o de relatórios ou os dois. Um modelo pequeno basta para escolher entre três palavras, por uma fração do preço e da latência do modelo principal. |
 
 Cada agente tem um system prompt pequeno e focado, em vez de um prompt único que tenta fazer tudo.
 
@@ -214,6 +214,7 @@ cd helpdesk/backend && npx tsc --noEmit
 | `ANTHROPIC_API_KEY` | Sim | Chave da API da Anthropic |
 | `JWT_SECRET` | Sim | Segredo usado para assinar os JWTs (`openssl rand -base64 32`). O servidor não sobe sem ele. |
 | `ANTHROPIC_MODEL` | Não | Modelo usado pelos agentes (padrão `claude-sonnet-4-5`) |
+| `ANTHROPIC_MODEL_CLASSIFICADOR` | Não | Modelo do classificador do orquestrador (padrão `claude-haiku-5-5`) |
 | `JWT_EXPIRES_IN` | Não | Duração da sessão (padrão `8h`) |
 | `PORT` | Não | Porta do servidor (padrão `3000`) |
 | `CORS_ORIGIN` | Não | Origens permitidas, separadas por vírgula (padrão `http://localhost:4200`) |
