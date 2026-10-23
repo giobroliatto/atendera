@@ -29,7 +29,7 @@ Guia detalhado de cada parte do projeto. Para instalação e visão geral, veja 
 | Frontend | Angular 21 + Angular Material |
 | Backend | Node.js + Express 5 + TypeScript |
 | Banco de dados | SQLite via Prisma 7 + better-sqlite3 |
-| IA | Claude (`claude-sonnet-4-5`) via `@anthropic-ai/sdk`, embeddings locais via `@xenova/transformers` |
+| IA | Claude via `@anthropic-ai/sdk` (modelo definido por `ANTHROPIC_MODEL`, padrão `claude-sonnet-4-5`; um cliente único em [`ia/claude.ts`](../helpdesk/backend/src/ia/claude.ts)), embeddings locais via `@xenova/transformers` |
 
 | Tela | Agente | Quando |
 |---|---|---|
@@ -335,8 +335,9 @@ O [`logger.ts`](../helpdesk/backend/src/observabilidade/logger.ts) grava uma lin
 | Campo | Significado |
 |---|---|
 | `agente` | `automatico`, `automatico_cot`, `interativo_stream`, `relatorio`, `orquestrador` |
+| `modelo` | Modelo que atendeu a chamada |
 | `inputTokens` / `outputTokens` | Somados em todas as iterações do loop de tool use |
-| `custoUsd` | `entrada × $3/1M + saída × $15/1M` (preços do Sonnet) |
+| `custoUsd` | `entrada × preço de entrada + saída × preço de saída`, pela tabela de preços por modelo do `logger.ts` (um modelo fora da tabela usa o preço do Sonnet 4.5, com um aviso no log) |
 | `latenciaMs` | Da primeira chamada à API até a resposta final |
 | `toolCalls` | Quantas ferramentas o agente chamou |
 | `ticketId` | Ticket relacionado, quando existe |

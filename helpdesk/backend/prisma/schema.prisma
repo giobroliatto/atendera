@@ -87,9 +87,10 @@ model BaseConhecimento {
 model LogChamadaIA {
   id           Int      @id @default(autoincrement())
   agente       String   // "automatico" | "automatico_cot" | "interativo" | "relatorio" | "orquestrador"
+  modelo       String?  // modelo que atendeu a chamada (null nos logs anteriores a este campo)
   inputTokens  Int
   outputTokens Int
-  custoUsd     Float    // (inputTokens * $3/1M) + (outputTokens * $15/1M)
+  custoUsd     Float    // calculado com o preço do modelo (tabela em observabilidade/logger.ts)
   latenciaMs   Int
   toolCalls    Int      @default(0)
   ticketId     Int?

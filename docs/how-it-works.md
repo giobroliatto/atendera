@@ -29,7 +29,7 @@ An in-depth guide to every piece of the project. For setup and an overview, see 
 | Frontend | Angular 21 + Angular Material |
 | Backend | Node.js + Express 5 + TypeScript |
 | Database | SQLite via Prisma 7 + better-sqlite3 |
-| AI | Claude (`claude-sonnet-4-5`) via `@anthropic-ai/sdk`, local embeddings via `@xenova/transformers` |
+| AI | Claude via `@anthropic-ai/sdk` (model set by `ANTHROPIC_MODEL`, default `claude-sonnet-4-5`; one shared client in [`ia/claude.ts`](../helpdesk/backend/src/ia/claude.ts)), local embeddings via `@xenova/transformers` |
 
 | Screen | Agent | When |
 |---|---|---|
@@ -335,8 +335,9 @@ Several layers, so none of them has to be perfect:
 | Field | Meaning |
 |---|---|
 | `agente` | `automatico`, `automatico_cot`, `interativo_stream`, `relatorio`, `orquestrador` |
+| `modelo` | Model that served the call |
 | `inputTokens` / `outputTokens` | Summed over every iteration of the tool use loop |
-| `custoUsd` | `input × $3/1M + output × $15/1M` (Sonnet prices) |
+| `custoUsd` | `input × input price + output × output price`, from the per-model price table in `logger.ts` (a model missing from the table falls back to Sonnet 4.5 prices with a warning) |
 | `latenciaMs` | From the first API call to the final answer |
 | `toolCalls` | How many tools the agent called |
 | `ticketId` | Related ticket, when there is one |

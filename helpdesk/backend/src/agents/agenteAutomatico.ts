@@ -1,10 +1,9 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { client, MODELO_PRINCIPAL } from "../ia/claude";
 import prisma from "../db/prisma";
 import { buscarConhecimentoRelevante } from "../rag/buscar";
 import { logChamadaIA } from "../observabilidade/logger";
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-const MODEL = "claude-sonnet-4-5";
 
 // ================================================================
 // PROMPT ENGINEERING — duas variantes de análise
@@ -168,13 +167,14 @@ export async function agenteAuditarTicket(ticketId: number, comRaciocinio = fals
   const inicio = Date.now();
   try {
     const response = await client.messages.create({
-      model: MODEL,
+      model: MODELO_PRINCIPAL,
       max_tokens: comRaciocinio ? 600 : 200,
       system: comRaciocinio ? SYSTEM_AUDITOR_COT : SYSTEM_AUDITOR_SIMPLES,
       messages: [{ role: "user", content: promptComRAG }],
     });
 
     logChamadaIA({
+      modelo:       MODELO_PRINCIPAL,
       agente:       comRaciocinio ? "automatico_cot" : "automatico",
       inputTokens:  response.usage.input_tokens,
       outputTokens: response.usage.output_tokens,

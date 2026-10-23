@@ -2,6 +2,7 @@
 export interface LogChamadaIA {
   id: number;
   agente: string;
+  modelo: string | null;
   inputTokens: number;
   outputTokens: number;
   custoUsd: number;

@@ -1,10 +1,9 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { client, MODELO_PRINCIPAL } from "../ia/claude";
 import { relatorioToolsSchema, executarRelatorioTool } from "../tools/relatorioTools";
 import { logChamadaIA } from "../observabilidade/logger";
 import { executarToolComoResultado } from "../tools/executarTool";
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-const MODEL = "claude-sonnet-4-5";
 
 const SYSTEM_RELATORIOS = `Você é um analista de dados especializado em helpdesk.
 Gera relatórios claros, objetivos e acionáveis sobre os tickets de suporte.
@@ -55,7 +54,7 @@ export async function agenteRelatorioStream(
 
   while (true) {
     const stream = client.messages.stream({
-      model: MODEL,
+      model: MODELO_PRINCIPAL,
       max_tokens: 800,
       system: systemComData,
       tools: relatorioToolsSchema,
@@ -95,6 +94,7 @@ export async function agenteRelatorioStream(
   }
 
   logChamadaIA({
+    modelo:       MODELO_PRINCIPAL,
     agente:       "relatorio",
     inputTokens:  totalInputTokens,
     outputTokens: totalOutputTokens,
