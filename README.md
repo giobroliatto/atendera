@@ -165,21 +165,20 @@ cd helpdesk/backend
 npm install
 ```
 
-Create `helpdesk/backend/.env`:
-
 ```bash
-ANTHROPIC_API_KEY=sk-ant-...
-JWT_SECRET=...           # generate one with: openssl rand -base64 32
+cp .env.example .env     # fill in ANTHROPIC_API_KEY and JWT_SECRET
 ```
 
-Then create the database, your user and the knowledge base:
+Then create the database, your user and the sample data:
 
 ```bash
 npx prisma migrate dev                                   # creates prisma/helpdesk.db
 npm run usuario:criar -- "Your Name" you@company.com your-password
-node scripts/popular-base-conhecimento.js                # optional: RAG articles (downloads ~80 MB on first run)
+npm run db:seed                                          # sample tickets + RAG knowledge base (downloads ~80 MB on first run)
 npm run dev                                              # http://localhost:3000 (GET /health to check)
 ```
+
+The sample tickets come with hand-written analyses so the screens don't start empty. Create a new ticket to see the automatic agent for real.
 
 ### 2. Frontend
 
@@ -230,7 +229,8 @@ cd helpdesk/backend && npx tsc --noEmit
 | `npm run db:migrate` | Applies Prisma migrations |
 | `npm run db:studio` | Opens Prisma Studio |
 | `npm run usuario:criar -- "Name" email password` | Creates a user (or resets their password) |
-| `node scripts/popular-base-conhecimento.js` | Rebuilds the RAG knowledge base |
+| `npm run db:seed` | Sample tickets (only if there are none) and the RAG knowledge base |
+| `npm run kb:popular` | Rebuilds the RAG knowledge base |
 | `node scripts/limpar-chat.js` | Deletes every chat message |
 
 </details>

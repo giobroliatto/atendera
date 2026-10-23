@@ -247,12 +247,14 @@ Dois vetores são parecidos quando apontam na mesma direção. O modelo de embed
 
 ### Base de conhecimento
 
-O [`scripts/popular-base-conhecimento.js`](../helpdesk/backend/scripts/popular-base-conhecimento.js) cria 10 artigos de TI (reset de senha, impressora offline, VPN, e-mail no celular, computador lento, pedidos de acesso, áudio no Teams, recuperação de arquivos, monitor sem sinal, instalação de software) e salva cada um com seu vetor:
+O [`rag/artigos.ts`](../helpdesk/backend/src/rag/artigos.ts) tem 10 artigos de TI (reset de senha, impressora offline, VPN, e-mail no celular, computador lento, pedidos de acesso, áudio no Teams, recuperação de arquivos, monitor sem sinal, instalação de software) e o [`popularBaseConhecimento.ts`](../helpdesk/backend/src/scripts/popularBaseConhecimento.ts) salva cada um com seu vetor. Todos os vetores são calculados antes de substituir a base antiga, numa única transação, então uma falha no download do modelo não apaga a base:
 
 ```bash
 cd helpdesk/backend
-node scripts/popular-base-conhecimento.js   # baixa o modelo (~80 MB) na primeira execução
+npm run kb:popular   # também roda dentro do npm run db:seed; baixa o modelo (~80 MB) na primeira execução
 ```
+
+Se o modelo de embeddings não carregar, a busca é ignorada com um aviso e os agentes continuam respondendo, só que sem o contexto extra.
 
 ---
 
@@ -405,7 +407,7 @@ helpdesk/backend/src/
 ├── observabilidade/         log de tokens, custo e latência por chamada
 ├── rag/                     embeddings e busca por similaridade
 ├── routes/                  auth, tickets, chat, orquestrador, relatorio, acoes, logs
-├── scripts/criarUsuario.ts  cria usuários
+├── scripts/                 cria usuários, popula dados de exemplo e recria a base de conhecimento
 ├── tools/                   schemas, executores e validação dos argumentos das ferramentas
 └── db/prisma.ts             PrismaClient com o adapter do better-sqlite3
 
