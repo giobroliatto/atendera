@@ -131,7 +131,7 @@ Chat answers are sent as Server-Sent Events while Claude generates them. The fro
 
 ### Observability
 
-[`logger.ts`](helpdesk/backend/src/observabilidade/logger.ts) records input/output tokens, estimated cost, latency, tool calls and the related ticket for every call, adding up all iterations of a tool use loop. The `/logs` page shows totals and a filterable table.
+[`logger.ts`](helpdesk/backend/src/observabilidade/logger.ts) records the model, input/output tokens, estimated cost (from each model's price), latency, tool calls and the related ticket for every call, adding up all iterations of a tool use loop. The `/logs` page shows totals and a filterable table.
 
 ### Authentication
 
@@ -213,6 +213,7 @@ cd helpdesk/backend && npx tsc --noEmit
 |---|---|---|
 | `ANTHROPIC_API_KEY` | Yes | Anthropic API key |
 | `JWT_SECRET` | Yes | Secret used to sign JWTs (`openssl rand -base64 32`). The server refuses to start without it. |
+| `ANTHROPIC_MODEL` | No | Model used by the agents (default `claude-sonnet-4-5`) |
 | `JWT_EXPIRES_IN` | No | Session length (default `8h`) |
 | `PORT` | No | Server port (default `3000`) |
 | `CORS_ORIGIN` | No | Allowed origins, comma-separated (default `http://localhost:4200`) |

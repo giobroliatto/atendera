@@ -3,16 +3,16 @@ import prisma from "../db/prisma";
 // ================================================================
 // OBSERVABILIDADE — logger de chamadas à API da Anthropic
 //
-// Preços claude-sonnet-4-5 (mai/2026):
-//   Input:  $3,00 / 1M tokens  → $0.000003 por token
-//   Output: $15,00 / 1M tokens → $0.000015 por token
+// O custo é calculado com o preço do modelo que atendeu a chamada
+// (tabela PRECOS abaixo, em USD por 1 milhão de tokens).
 //
 // Por que input e output têm preços diferentes?
 //   O modelo precisa processar CADA token do input antes de gerar
 //   qualquer output. Output requer mais computação (geração autoregressiva
-//   token a token) — por isso custa 5× mais que input.
+//   token a token) — por isso custa bem mais que input.
 //
 // O que é rastreado:
+//   - Modelo usado
 //   - Tokens de input e output separados (preços diferentes)
 //   - Custo estimado em USD por chamada
 //   - Latência total (do create() ao retorno)
@@ -20,10 +20,32 @@ import prisma from "../db/prisma";
 //   - Qual agente / qual ticketId (para correlação)
 // ================================================================
 
-const CUSTO_INPUT  = 3.00  / 1_000_000; // $3 por milhão de tokens de input
-const CUSTO_OUTPUT = 15.00 / 1_000_000; // $15 por milhão de tokens de output
+// Preços da API da Anthropic (USD por 1M de tokens) — out/2026.
+// Ao trocar ANTHROPIC_MODEL para um modelo fora da lista, adicione o preço aqui.
+const PRECOS: Record<string, { entrada: number; saida: number }> = {
+  "claude-haiku-5-5":  { entrada: 0.10, saida: 0.50 },
+  "claude-haiku-4-5":  { entrada: 1.00, saida: 5.00 },
+  "claude-sonnet-5-5": { entrada: 2.00, saida: 10.00 },
+  "claude-sonnet-5":   { entrada: 2.00, saida: 10.00 },
+  "claude-sonnet-4-6": { entrada: 3.00, saida: 15.00 },
+  "claude-sonnet-4-5": { entrada: 3.00, saida: 15.00 },
+  "claude-opus-5-5":   { entrada: 4.00, saida: 20.00 },
+  "claude-opus-5":     { entrada: 5.00, saida: 25.00 },
+};
+const PRECO_PADRAO = PRECOS["claude-sonnet-4-5"];
+const avisados = new Set<string>();
+
+function precoDoModelo(modelo: string) {
+  const preco = PRECOS[modelo];
+  if (!preco && !avisados.has(modelo)) {
+    avisados.add(modelo);
+    console.warn(`[OBS] Modelo "${modelo}" sem preço em logger.ts — usando o preço do claude-sonnet-4-5 no cálculo de custo.`);
+  }
+  return preco ?? PRECO_PADRAO;
+}
 
 export interface LogParams {
+  modelo: string;
   agente: string;
   inputTokens: number;
   outputTokens: number;
@@ -33,12 +55,14 @@ export interface LogParams {
 }
 
 export async function logChamadaIA(params: LogParams): Promise<void> {
+  const preco = precoDoModelo(params.modelo);
   const custoUsd =
-    params.inputTokens  * CUSTO_INPUT +
-    params.outputTokens * CUSTO_OUTPUT;
+    (params.inputTokens  * preco.entrada +
+     params.outputTokens * preco.saida) / 1_000_000;
 
   await prisma.logChamadaIA.create({
     data: {
+      modelo:       params.modelo,
       agente:       params.agente,
       inputTokens:  params.inputTokens,
       outputTokens: params.outputTokens,
@@ -51,7 +75,7 @@ export async function logChamadaIA(params: LogParams): Promise<void> {
 
   // Log no console em formato compacto para debug
   console.log(
-    `[OBS] ${params.agente.padEnd(16)} | ` +
+    `[OBS] ${params.agente.padEnd(16)} | ${params.modelo} | ` +
     `in:${String(params.inputTokens).padStart(5)} out:${String(params.outputTokens).padStart(4)} | ` +
     `$${custoUsd.toFixed(5)} | ` +
     `${params.latenciaMs}ms | ` +

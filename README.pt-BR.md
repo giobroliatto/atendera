@@ -131,7 +131,7 @@ As respostas do chat são enviadas como Server-Sent Events enquanto o Claude ger
 
 ### Observabilidade
 
-O [`logger.ts`](helpdesk/backend/src/observabilidade/logger.ts) registra tokens de entrada e saída, custo estimado, latência, tool calls e o ticket relacionado de cada chamada, somando todas as iterações do loop de tool use. A página `/logs` mostra os totais e uma tabela com filtro.
+O [`logger.ts`](helpdesk/backend/src/observabilidade/logger.ts) registra o modelo, tokens de entrada e saída, custo estimado (pelo preço de cada modelo), latência, tool calls e o ticket relacionado de cada chamada, somando todas as iterações do loop de tool use. A página `/logs` mostra os totais e uma tabela com filtro.
 
 ### Autenticação
 
@@ -213,6 +213,7 @@ cd helpdesk/backend && npx tsc --noEmit
 |---|---|---|
 | `ANTHROPIC_API_KEY` | Sim | Chave da API da Anthropic |
 | `JWT_SECRET` | Sim | Segredo usado para assinar os JWTs (`openssl rand -base64 32`). O servidor não sobe sem ele. |
+| `ANTHROPIC_MODEL` | Não | Modelo usado pelos agentes (padrão `claude-sonnet-4-5`) |
 | `JWT_EXPIRES_IN` | Não | Duração da sessão (padrão `8h`) |
 | `PORT` | Não | Porta do servidor (padrão `3000`) |
 | `CORS_ORIGIN` | Não | Origens permitidas, separadas por vírgula (padrão `http://localhost:4200`) |

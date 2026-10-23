@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { client, MODELO_PRINCIPAL } from "../ia/claude";
 import prisma from "../db/prisma";
 import { ticketToolsSchema } from "../tools/ticketTools";
 import { executarToolComHITL, AcaoProposta } from "../hitl/acoesPendentes";
@@ -6,8 +7,6 @@ import { buscarConhecimentoRelevante } from "../rag/buscar";
 import { logChamadaIA } from "../observabilidade/logger";
 import { executarToolComoResultado } from "../tools/executarTool";
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-const MODEL = "claude-sonnet-4-5";
 
 const SYSTEM_INTERATIVO = `Você é um assistente de suporte interno da empresa.
 Você ajuda funcionários a consultar, entender e acompanhar tickets de suporte.
@@ -91,7 +90,7 @@ export async function agenteChatInterativo(
   let totalInputTokens = 0, totalOutputTokens = 0, toolCallCount = 0;
 
   let response = await client.messages.create({
-    model: MODEL,
+    model: MODELO_PRINCIPAL,
     max_tokens: 500,
     system: systemPrompt,
     tools: ticketToolsSchema,
@@ -121,7 +120,7 @@ export async function agenteChatInterativo(
     messages.push({ role: "user", content: toolResults });
 
     response = await client.messages.create({
-      model: MODEL,
+      model: MODELO_PRINCIPAL,
       max_tokens: 500,
       system: systemPrompt,
       tools: ticketToolsSchema,
@@ -145,6 +144,7 @@ export async function agenteChatInterativo(
   });
 
   logChamadaIA({
+    modelo:       MODELO_PRINCIPAL,
     agente:       "interativo",
     inputTokens:  totalInputTokens,
     outputTokens: totalOutputTokens,
@@ -208,7 +208,7 @@ export async function agenteChatInterativoStream(
   // Loop: executa ferramentas normalmente (sem stream), streama apenas o texto final
   while (true) {
     const stream = client.messages.stream({
-      model: MODEL,
+      model: MODELO_PRINCIPAL,
       max_tokens: 500,
       system: systemPrompt,
       tools: ticketToolsSchema,
@@ -250,6 +250,7 @@ export async function agenteChatInterativoStream(
   }
 
   logChamadaIA({
+    modelo:       MODELO_PRINCIPAL,
     agente:       "interativo_stream",
     inputTokens:  totalInputTokens,
     outputTokens: totalOutputTokens,
