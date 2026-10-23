@@ -207,9 +207,9 @@ Descrição: ${ticket.descricao}`;
         categoria: analise.categoria,
         sugestaoIA: analise.sugestao,
         raciocinioIA: analise.raciocinio ?? null,  // null quando modo simples
-        status: "aberto", // volta para aberto após análise (pronto para atendente)
       },
     });
+    await liberarTicketAposAnalise(ticketId);
 
     console.log(`[AGENTE AUTO] Ticket #${ticketId} classificado:`);
     console.log(`  Prioridade: ${analise.prioridade}`);
@@ -218,9 +218,16 @@ Descrição: ${ticket.descricao}`;
   } catch (error) {
     // Se o modelo não retornar JSON válido ou outro erro, loga e segue
     console.error(`[AGENTE AUTO] Erro ao analisar ticket #${ticketId}:`, error);
-    await prisma.ticket.update({
-      where: { id: ticketId },
-      data: { status: "aberto" },
-    });
+    await liberarTicketAposAnalise(ticketId);
   }
+}
+
+// Volta o ticket para "aberto" (pronto para atendente) SÓ se ele ainda estiver
+// "em_analise". Se alguém mudou o status enquanto o agente trabalhava
+// (ex: fechou o ticket pela tela ou pelo chat), a decisão humana é preservada.
+async function liberarTicketAposAnalise(ticketId: number): Promise<void> {
+  await prisma.ticket.updateMany({
+    where: { id: ticketId, status: "em_analise" },
+    data: { status: "aberto" },
+  });
 }
