@@ -98,7 +98,7 @@ flowchart LR
 | **Automatic** ([`agenteAutomatico.ts`](helpdesk/backend/src/agents/agenteAutomatico.ts)) | A ticket is created | Classifies priority and category and suggests a solution. Returns JSON that is normalized and validated before it is saved. |
 | **Interactive** ([`agenteInterativo.ts`](helpdesk/backend/src/agents/agenteInterativo.ts)) | Chat | Looks tickets up with tools, proposes changes and streams the answer. Keeps a short history (last 8 messages). |
 | **Reports** ([`agenteRelatorios.ts`](helpdesk/backend/src/agents/agenteRelatorios.ts)) | Chat | Stateless analytics: volume per period, distribution, tickets with no updates (SLA risk). |
-| **Orchestrator** ([`orquestrador.ts`](helpdesk/backend/src/agents/orquestrador.ts)) | Every chat message | A cheap classification call (`max_tokens: 10`) that routes to the interactive agent, the reports agent or both. |
+| **Orchestrator** ([`orquestrador.ts`](helpdesk/backend/src/agents/orquestrador.ts)) | Every chat message | A classification call on Claude Haiku (`max_tokens: 10`, thinking off) that routes to the interactive agent, the reports agent or both. A small model is enough to pick one of three words, at a fraction of the main model's price and latency. |
 
 Each agent keeps a small, focused system prompt instead of one prompt that tries to do everything.
 
@@ -214,6 +214,7 @@ cd helpdesk/backend && npx tsc --noEmit
 | `ANTHROPIC_API_KEY` | Yes | Anthropic API key |
 | `JWT_SECRET` | Yes | Secret used to sign JWTs (`openssl rand -base64 32`). The server refuses to start without it. |
 | `ANTHROPIC_MODEL` | No | Model used by the agents (default `claude-sonnet-4-5`) |
+| `ANTHROPIC_MODEL_CLASSIFICADOR` | No | Model used by the orchestrator's classifier (default `claude-haiku-5-5`) |
 | `JWT_EXPIRES_IN` | No | Session length (default `8h`) |
 | `PORT` | No | Server port (default `3000`) |
 | `CORS_ORIGIN` | No | Allowed origins, comma-separated (default `http://localhost:4200`) |
