@@ -3,7 +3,7 @@
     "helpdesk-ia": {
       "command": "npx",
       "args": ["ts-node", "--project", "tsconfig.json", "src/mcp/server.ts"],
-      "cwd": "c:\\aulas-claude\\ia\\helpdesk\\backend"
+      "cwd": "${workspaceFolder}/helpdesk/backend"
     }
   }
 }
