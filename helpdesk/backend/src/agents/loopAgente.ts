@@ -11,6 +11,14 @@ import { executarToolComoResultado } from "../tools/executarTool";
 //      os tool_result numa única mensagem user. Volta para 1.
 //   3. Qualquer outro stop_reason: a resposta final está pronta.
 //
+// Prompt caching:
+//   O system vai em dois blocos. O primeiro (instruções fixas) leva cache_control:
+//   como a API monta o prompt na ordem tools → system → messages, esse breakpoint
+//   guarda tools + instruções no cache. Nas chamadas seguintes (as outras iterações
+//   do loop e as próximas mensagens, por 5 minutos) esse trecho custa 10% do preço.
+//   A parte que muda a cada chamada (data, artigos do RAG) fica no segundo bloco,
+//   DEPOIS do breakpoint — se viesse antes, invalidaria o cache toda vez.
+//
 // Proteções:
 //   - maxIteracoes: o modelo não fica chamando ferramentas para sempre
 //   - "max_tokens": avisa que a resposta foi cortada em vez de terminar em silêncio
@@ -20,7 +28,8 @@ import { executarToolComoResultado } from "../tools/executarTool";
 
 export interface OpcoesLoopAgente {
   agente: string;                                   // nome no log de observabilidade
-  system: string;
+  systemFixo: string;                               // instruções que não mudam (vão para o cache)
+  systemVariavel?: string;                          // data, contexto do RAG... (fora do cache)
   tools: Anthropic.Tool[];
   executor: (nome: string, input: Record<string, unknown>) => Promise<unknown>;
   messages: Anthropic.MessageParam[];               // histórico + mensagem atual (é modificado)
@@ -36,14 +45,20 @@ export const AVISO_RECUSA = "Não posso ajudar com esse pedido.";
 
 // Devolve o texto da resposta final do modelo
 export async function executarLoopAgente(opcoes: OpcoesLoopAgente): Promise<string> {
-  const { agente, system, tools, executor, messages, maxTokens, onChunk } = opcoes;
+  const { agente, tools, executor, messages, maxTokens, onChunk } = opcoes;
   const maxIteracoes = opcoes.maxIteracoes ?? 8;
+
+  const system: Anthropic.TextBlockParam[] = [
+    { type: "text", text: opcoes.systemFixo, cache_control: { type: "ephemeral" } },
+  ];
+  if (opcoes.systemVariavel) system.push({ type: "text", text: opcoes.systemVariavel });
 
   const emitir = (texto: string) => onChunk?.(texto);
 
   // acumuladores de observabilidade — somam tokens de TODAS as iterações do loop
   const inicio = Date.now();
   let totalInputTokens = 0, totalOutputTokens = 0, toolCallCount = 0;
+  let cacheEscritaTokens = 0, cacheLeituraTokens = 0;
 
   try {
     for (let iteracao = 1; iteracao <= maxIteracoes; iteracao++) {
@@ -65,6 +80,8 @@ export async function executarLoopAgente(opcoes: OpcoesLoopAgente): Promise<stri
       const resposta = await stream.finalMessage();
       totalInputTokens += resposta.usage.input_tokens;
       totalOutputTokens += resposta.usage.output_tokens;
+      cacheEscritaTokens += resposta.usage.cache_creation_input_tokens ?? 0;
+      cacheLeituraTokens += resposta.usage.cache_read_input_tokens ?? 0;
 
       if (resposta.stop_reason !== "tool_use") {
         let texto = resposta.content
@@ -104,6 +121,8 @@ export async function executarLoopAgente(opcoes: OpcoesLoopAgente): Promise<stri
       agente,
       inputTokens:  totalInputTokens,
       outputTokens: totalOutputTokens,
+      cacheEscritaTokens,
+      cacheLeituraTokens,
       latenciaMs:   Date.now() - inicio,
       toolCalls:    toolCallCount,
       ticketId:     opcoes.ticketId ?? null,

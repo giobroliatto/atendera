@@ -14,6 +14,7 @@ Guia detalhado de cada parte do projeto. Para instalação e visão geral, veja 
 - [Streaming (SSE)](#streaming-sse)
 - [Histórico do chat](#histórico-do-chat)
 - [Prompt engineering](#prompt-engineering)
+- [Prompt caching](#prompt-caching)
 - [Guardrails](#guardrails)
 - [Observabilidade](#observabilidade)
 - [Autenticação](#autenticação)
@@ -325,6 +326,26 @@ O agente automático tem dois modos, escolhidos pela opção "Incluir raciocíni
 
 ---
 
+## Prompt caching
+
+A API monta todo prompt na ordem **tools → system → messages**, e o cache funciona por prefixo: se o começo do prompt for idêntico, byte a byte, ao de uma chamada feita nos últimos 5 minutos, essa parte é lida do cache por ~10% do preço de entrada (gravar da primeira vez custa 1,25×).
+
+```
+system: [
+  { text: SYSTEM_INTERATIVO, cache_control: { type: "ephemeral" } },   ← breakpoint: tools + instruções fixas
+  { text: "Data de hoje: 23/10/2026. Artigos do RAG: ..." }              ← muda a cada chamada, depois do breakpoint
+]
+messages: [...]
+```
+
+- **A ordem importa.** A data e os artigos do RAG vinham *antes* no system prompt, o que deixava cada prompt diferente desde o primeiro caractere e o cache inútil. Agora eles vão num segundo bloco, depois do breakpoint.
+- **O que entra no cache:** as tools + instruções do agente interativo (~1.800 tokens) são reaproveitadas em cada rodada do loop de tool use e em cada mensagem do chat dentro de 5 minutos. O agente automático também marca o system prompt, o que compensa no modo detalhado (com os exemplos few-shot).
+- **Tamanho mínimo:** abaixo do prefixo mínimo do modelo (1.024 tokens no Sonnet 4.5, 512 no Haiku 5.5), a marcação é ignorada em silêncio, sem custo. É o caso do prompt da triagem no modo simples e do classificador do orquestrador, que por isso nem tem marcação.
+- **O histórico não entra no cache** de propósito: o chat manda uma janela das últimas 8 mensagens, então o prefixo do histórico muda a cada turno.
+- **Observabilidade:** `cache_creation_input_tokens` e `cache_read_input_tokens` são registrados como `cacheEscritaTokens` e `cacheLeituraTokens`, cobrados a 1,25× e ~0,1× do preço de entrada, e o `/logs` mostra quanto do input veio do cache.
+
+---
+
 ## Guardrails
 
 Várias camadas, para que nenhuma precise ser perfeita:
@@ -345,13 +366,14 @@ O [`logger.ts`](../helpdesk/backend/src/observabilidade/logger.ts) grava uma lin
 |---|---|
 | `agente` | `automatico`, `automatico_cot`, `interativo_stream`, `relatorio`, `orquestrador` |
 | `modelo` | Modelo que atendeu a chamada |
-| `inputTokens` / `outputTokens` | Somados em todas as iterações do loop de tool use |
-| `custoUsd` | `entrada × preço de entrada + saída × preço de saída`, pela tabela de preços por modelo do `logger.ts` (um modelo fora da tabela usa o preço do Sonnet 4.5, com um aviso no log) |
+| `inputTokens` / `outputTokens` | Somados em todas as iterações do loop de tool use (`inputTokens` não inclui o cache) |
+| `cacheEscritaTokens` / `cacheLeituraTokens` | Tokens gravados no / lidos do prompt cache |
+| `custoUsd` | `entrada × preço de entrada + escritas no cache × 1,25 × preço de entrada + leituras do cache × ~0,1 × preço de entrada + saída × preço de saída`, pela tabela de preços por modelo do `logger.ts` (um modelo fora da tabela usa o preço do Sonnet 4.5, com um aviso no log) |
 | `latenciaMs` | Da primeira chamada à API até a resposta final |
 | `toolCalls` | Quantas ferramentas o agente chamou |
 | `ticketId` | Ticket relacionado, quando existe |
 
-Entrada e saída têm preços diferentes porque a saída é gerada de forma autorregressiva, um token por vez, enquanto a entrada é processada de uma vez. A página `/logs` mostra os totais (chamadas, custo, tokens, latência média e máxima) e as últimas chamadas, com filtro por agente.
+Entrada e saída têm preços diferentes porque a saída é gerada de forma autorregressiva, um token por vez, enquanto a entrada é processada de uma vez. A página `/logs` mostra os totais (chamadas, custo, tokens, parte do input que veio do cache, latência média e máxima) e as últimas chamadas, com filtro por agente.
 
 ---
 

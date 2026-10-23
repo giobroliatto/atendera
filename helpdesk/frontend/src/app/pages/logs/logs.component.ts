@@ -29,7 +29,7 @@ export class LogsComponent implements OnInit {
   carregando = true;
   erro = '';
   agente = '';
-  colunas = ['criadoEm', 'agente', 'inputTokens', 'outputTokens', 'toolCalls', 'latenciaMs', 'custoUsd', 'ticketId'];
+  colunas = ['criadoEm', 'agente', 'inputTokens', 'cache', 'outputTokens', 'toolCalls', 'latenciaMs', 'custoUsd', 'ticketId'];
 
   agentes = [
     { valor: '',                   label: 'Todos os agentes' },
@@ -77,6 +77,14 @@ export class LogsComponent implements OnInit {
   get latenciaMaxima(): number { return this.totais?._max.latenciaMs ?? 0; }
   get totalToolCalls(): number { return this.totais?._sum.toolCalls ?? 0; }
   get custoMedio(): number { return this.totalChamadas ? this.custoTotal / this.totalChamadas : 0; }
+  get cacheLeitura(): number { return this.totais?._sum.cacheLeituraTokens ?? 0; }
+  get cacheEscrita(): number { return this.totais?._sum.cacheEscritaTokens ?? 0; }
+
+  // Parte do input que veio do prompt cache (custa ~10% do preço normal)
+  get taxaCache(): number {
+    const totalEntrada = this.tokensEntrada + this.cacheEscrita + this.cacheLeitura;
+    return totalEntrada ? this.cacheLeitura / totalEntrada : 0;
+  }
 
   labelAgente(valor: string): string {
     return this.agentes.find((a) => a.valor === valor)?.label ?? valor;

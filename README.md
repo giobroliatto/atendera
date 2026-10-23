@@ -44,7 +44,7 @@
 </td>
 <td width="50%" valign="top">
 <img src="docs/logs.png" alt="Observability dashboard with tokens, cost and latency per call" />
-<sub>The <code>/logs</code> dashboard: tokens, cost and latency of every call, filterable by agent.</sub>
+<sub>The <code>/logs</code> dashboard: model, tokens, prompt cache, cost and latency of every call, filterable by agent.</sub>
 </td>
 </tr>
 </table>
@@ -119,6 +119,10 @@ Knowledge base articles are embedded locally with `Xenova/all-MiniLM-L6-v2` (384
 - **Two triage modes.** Simple (~200 output tokens) by default, or chain of thought + four few-shot examples (~600 tokens) when the user asks for a detailed analysis. The reasoning is stored in `raciocinioIA` and shown on the ticket.
 - **Fresh data over history.** The interactive agent is told never to answer about a ticket's state from the conversation history, only from a fresh tool call.
 
+### Prompt caching
+
+Tools and the fixed instructions of each agent get a `cache_control` breakpoint, so repeated calls within 5 minutes (the next rounds of a tool use loop, the next chat message) read that prefix at ~10% of the input price. Whatever changes per call (today's date, RAG articles) goes in a second system block *after* the breakpoint, so it doesn't invalidate the cache. Cache writes and reads are logged and priced separately, and `/logs` shows how much of the input came from the cache.
+
 ### Guardrails
 
 - Every input that reaches a model goes through [`validarInput`](helpdesk/backend/src/guardrails/validarInput.ts): size limits and known prompt injection patterns are rejected before spending tokens.
@@ -131,7 +135,7 @@ Chat answers are sent as Server-Sent Events while Claude generates them. The fro
 
 ### Observability
 
-[`logger.ts`](helpdesk/backend/src/observabilidade/logger.ts) records the model, input/output tokens, estimated cost (from each model's price), latency, tool calls and the related ticket for every call, adding up all iterations of a tool use loop. The `/logs` page shows totals and a filterable table.
+[`logger.ts`](helpdesk/backend/src/observabilidade/logger.ts) records the model, input/output tokens, prompt cache writes and reads, estimated cost (from each model's price), latency, tool calls and the related ticket for every call, adding up all iterations of a tool use loop. The `/logs` page shows totals and a filterable table.
 
 ### Authentication
 

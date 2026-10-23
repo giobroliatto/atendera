@@ -20,7 +20,7 @@ router.get("/", async (req: Request, res: Response, next: NextFunction) => {
       }),
       prisma.logChamadaIA.aggregate({
         where,
-        _sum:   { inputTokens: true, outputTokens: true, custoUsd: true, toolCalls: true },
+        _sum:   { inputTokens: true, outputTokens: true, cacheEscritaTokens: true, cacheLeituraTokens: true, custoUsd: true, toolCalls: true },
         _avg:   { latenciaMs: true, inputTokens: true, outputTokens: true },
         _count: { id: true },
         _max:   { latenciaMs: true },

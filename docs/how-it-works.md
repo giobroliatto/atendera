@@ -14,6 +14,7 @@ An in-depth guide to every piece of the project. For setup and an overview, see 
 - [Streaming (SSE)](#streaming-sse)
 - [Chat history](#chat-history)
 - [Prompt engineering](#prompt-engineering)
+- [Prompt caching](#prompt-caching)
 - [Guardrails](#guardrails)
 - [Observability](#observability)
 - [Authentication](#authentication)
@@ -325,6 +326,26 @@ The automatic agent has two modes, picked by the "Incluir raciocínio detalhado"
 
 ---
 
+## Prompt caching
+
+The API builds every prompt in the order **tools → system → messages**, and caching is a prefix match: if the beginning of the prompt is byte-for-byte the same as in a call made in the last 5 minutes, that part is read from the cache at ~10% of the input price (writing it the first time costs 1.25×).
+
+```
+system: [
+  { text: SYSTEM_INTERATIVO, cache_control: { type: "ephemeral" } },   ← breakpoint: tools + fixed instructions
+  { text: "Today is 23/10/2026. RAG articles: ..." }                     ← changes per call, after the breakpoint
+]
+messages: [...]
+```
+
+- **Order matters.** The date and the RAG articles used to come *first* in the system prompt, which made every prompt different from the first character and the cache useless. They now go in a second block after the breakpoint.
+- **What gets cached:** the interactive agent's tools + instructions (~1,800 tokens) are reused on every round of the tool use loop and on every chat message within 5 minutes. The automatic agent also marks its system prompt, which pays off in detailed mode (with the few-shot examples).
+- **Minimum size:** below the model's minimum cacheable prefix (1,024 tokens on Sonnet 4.5, 512 on Haiku 5.5) the marker is silently ignored, at no cost. That's the case for the simple-mode triage prompt and for the orchestrator's classifier, which therefore has no marker.
+- **History isn't cached** on purpose: the chat sends a sliding window of the last 8 messages, so the history prefix changes on every turn.
+- **Observability:** `cache_creation_input_tokens` and `cache_read_input_tokens` are logged as `cacheEscritaTokens` and `cacheLeituraTokens`, priced at 1.25× and ~0.1× the input price, and `/logs` shows the share of input served from the cache.
+
+---
+
 ## Guardrails
 
 Several layers, so none of them has to be perfect:
@@ -345,13 +366,14 @@ Several layers, so none of them has to be perfect:
 |---|---|
 | `agente` | `automatico`, `automatico_cot`, `interativo_stream`, `relatorio`, `orquestrador` |
 | `modelo` | Model that served the call |
-| `inputTokens` / `outputTokens` | Summed over every iteration of the tool use loop |
-| `custoUsd` | `input × input price + output × output price`, from the per-model price table in `logger.ts` (a model missing from the table falls back to Sonnet 4.5 prices with a warning) |
+| `inputTokens` / `outputTokens` | Summed over every iteration of the tool use loop (`inputTokens` excludes the cache) |
+| `cacheEscritaTokens` / `cacheLeituraTokens` | Tokens written to / read from the prompt cache |
+| `custoUsd` | `input × input price + cache writes × 1.25 × input price + cache reads × ~0.1 × input price + output × output price`, from the per-model price table in `logger.ts` (a model missing from the table falls back to Sonnet 4.5 prices with a warning) |
 | `latenciaMs` | From the first API call to the final answer |
 | `toolCalls` | How many tools the agent called |
 | `ticketId` | Related ticket, when there is one |
 
-Input and output are priced differently because generating output is autoregressive, one token at a time, while the input is processed in one pass. The `/logs` page shows totals (calls, cost, tokens, average and max latency) and the latest calls, filterable by agent.
+Input and output are priced differently because generating output is autoregressive, one token at a time, while the input is processed in one pass. The `/logs` page shows totals (calls, cost, tokens, share of input from the cache, average and max latency) and the latest calls, filterable by agent.
 
 ---
 
