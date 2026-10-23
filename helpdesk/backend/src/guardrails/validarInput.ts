@@ -54,12 +54,12 @@ const PADROES_INJECTION: Array<{ padrao: RegExp; descricao: string }> = [
   },
 ];
 
-export function validarInput(mensagem: string): ResultadoValidacao {
+export function validarInput(mensagem: string, limiteChars = LIMITE_CHARS): ResultadoValidacao {
   // 1. Limite de tamanho
-  if (mensagem.length > LIMITE_CHARS) {
+  if (mensagem.length > limiteChars) {
     return {
       valido: false,
-      motivo: `Mensagem muito longa. Máximo ${LIMITE_CHARS} caracteres (recebido: ${mensagem.length}).`,
+      motivo: `Mensagem muito longa. Máximo ${limiteChars} caracteres (recebido: ${mensagem.length}).`,
     };
   }
 
