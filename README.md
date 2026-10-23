@@ -13,6 +13,8 @@
 ![Claude API](https://img.shields.io/badge/Claude_API-D97757?logo=anthropic&logoColor=white)
 ![MCP](https://img.shields.io/badge/MCP-server-000000)
 
+[![CI](https://github.com/giobroliatto/helpdesk-ia/actions/workflows/ci.yml/badge.svg)](https://github.com/giobroliatto/helpdesk-ia/actions/workflows/ci.yml)
+
 </div>
 
 **English** · [Português](README.pt-BR.md)
@@ -154,7 +156,7 @@ JWT login, passwords hashed with `scrypt` and a random salt, rate limiting on fa
 | Backend | Node.js 22, Express 5, Prisma 7 + SQLite (better-sqlite3 adapter), Zod, JWT, express-rate-limit |
 | AI | Claude API (Anthropic SDK), MCP SDK, `@xenova/transformers` for local embeddings |
 | Frontend | Angular 21 (standalone), Angular Material, RxJS, marked |
-| Tests | Vitest (backend, and frontend through the Angular unit-test builder) |
+| Tests and CI | Vitest (backend, and frontend through the Angular unit-test builder), GitHub Actions |
 
 ---
 
@@ -209,6 +211,8 @@ npx ts-node src/mcp/server.ts
 cd helpdesk/backend && npm run typecheck && npm test     # no Anthropic key or database needed
 cd helpdesk/frontend && npx ng test --watch=false
 ```
+
+[GitHub Actions](.github/workflows/ci.yml) runs type checking, tests and the build for the backend and the frontend on every push and pull request.
 
 <details>
 <summary><strong>Backend environment variables</strong></summary>
