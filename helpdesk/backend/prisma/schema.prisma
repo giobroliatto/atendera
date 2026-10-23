@@ -40,11 +40,31 @@ model ComentarioTicket {
 model MensagemChat {
   id        Int      @id @default(autoincrement())
   ticketId  Int?
+  usuarioId Int?     // dono da conversa — cada usuário vê só o próprio histórico
   role      String
   conteudo  String
   criadoEm DateTime @default(now())
 
   ticket    Ticket?  @relation(fields: [ticketId], references: [id])
+  usuario   Usuario? @relation(fields: [usuarioId], references: [id])
+}
+
+// ================================================================
+// AUTENTICAÇÃO — usuários do helpdesk
+//
+// A senha nunca é salva: guardamos só o hash scrypt com salt aleatório
+// ("salt:hash" em hex). Login devolve um JWT assinado com JWT_SECRET.
+// Usuários são criados pelo script: npm run usuario:criar
+// ================================================================
+model Usuario {
+  id        Int      @id @default(autoincrement())
+  nome      String
+  email     String   @unique
+  senhaHash String
+  criadoEm  DateTime @default(now())
+
+  mensagens MensagemChat[]
+  acoes     AcaoPendente[]
 }
 
 // Base de conhecimento para RAG
@@ -88,9 +108,12 @@ model AcaoPendente {
   id          Int       @id @default(autoincrement())
   tipo        String    // "alterar_status" | "alterar_prioridade" | "adicionar_comentario"
   ticketId    Int
+  usuarioId   Int?      // quem pediu a ação no chat — só essa pessoa pode confirmar
   dados       String    // argumentos validados da ação, serializados em JSON
   descricao   String    // texto legível exibido no cartão de confirmação
   estado      String    @default("pendente") // pendente | confirmada | cancelada | falhou
   criadoEm    DateTime  @default(now())
   resolvidoEm DateTime?
+
+  usuario     Usuario?  @relation(fields: [usuarioId], references: [id])
 }

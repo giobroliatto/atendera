@@ -1,0 +1,15 @@
+.login-container {
+  display: flex;
+  justify-content: center;
+  padding: 64px 16px;
+}
+.login-card { width: 100%; max-width: 400px; }
+mat-card-header { margin-bottom: 16px; }
+.logo { color: #1976d2; font-size: 40px; width: 40px; height: 40px; }
+.full-width { width: 100%; }
+.btn-entrar { height: 44px; margin-top: 8px; mat-spinner { margin: 0 auto; } }
+.aviso {
+  background: #fff8e1; color: #8d6e00; border-radius: 8px;
+  padding: 8px 12px; font-size: 13px; margin: 0 0 16px;
+}
+.erro-msg { margin: -8px 0 8px; }

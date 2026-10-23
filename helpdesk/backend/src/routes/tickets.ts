@@ -2,6 +2,7 @@ import { Router, Request, Response, NextFunction } from "express";
 import prisma from "../db/prisma";
 import { agenteAuditarTicket } from "../agents/agenteAutomatico";
 import { validarInput } from "../guardrails/validarInput";
+import { usuarioAtual } from "../auth/token";
 
 const router = Router();
 
@@ -59,7 +60,7 @@ router.post("/:id/comentarios", async (req: Request, res: Response, next: NextFu
       res.status(400).json({ erro: "id do ticket inválido" });
       return;
     }
-    const { conteudo, autor } = req.body as { conteudo: string; autor?: string };
+    const { conteudo } = req.body as { conteudo: string };
 
     if (!conteudo?.trim()) {
       res.status(400).json({ erro: "conteudo é obrigatório" });
@@ -79,7 +80,8 @@ router.post("/:id/comentarios", async (req: Request, res: Response, next: NextFu
     }
 
     const comentario = await prisma.comentarioTicket.create({
-      data: { ticketId, conteudo: conteudo.trim(), autor: autor?.trim() || "Usuário" },
+      // autor vem do token, não do body: ninguém comenta em nome de outra pessoa
+      data: { ticketId, conteudo: conteudo.trim(), autor: usuarioAtual(res).nome },
     });
 
     res.status(201).json(comentario);

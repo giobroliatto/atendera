@@ -2,6 +2,7 @@ import { Router, Request, Response } from "express";
 import prisma from "../db/prisma";
 import { orquestradorStream, AgenteRoteado } from "../agents/orquestrador";
 import { validarInput } from "../guardrails/validarInput";
+import { usuarioAtual } from "../auth/token";
 
 const router = Router();
 
@@ -29,8 +30,9 @@ router.post("/stream", async (req: Request, res: Response) => {
 
   // Carrega histórico antecipadamente — o agente interativo precisa dele;
   // o de relatórios ignora (stateless), mas o custo é mínimo.
+  const usuarioId = usuarioAtual(res).id;
   const historico = await prisma.mensagemChat.findMany({
-    where: { ticketId: ticketId ?? null },
+    where: { ticketId: ticketId ?? null, usuarioId },
     orderBy: { criadoEm: "desc" },
     take: 8,
   });
@@ -47,6 +49,7 @@ router.post("/stream", async (req: Request, res: Response) => {
     let respostaAcumulada = '';
     await orquestradorStream(
       ticketId ?? null,
+      usuarioId,
       mensagem,
       historicoFormatado,
       (agente: AgenteRoteado) => {
@@ -62,8 +65,8 @@ router.post("/stream", async (req: Request, res: Response) => {
     );
     await prisma.mensagemChat.createMany({
       data: [
-        { ticketId: ticketId ?? null, role: "user",      conteudo: mensagem },
-        { ticketId: ticketId ?? null, role: "assistant", conteudo: respostaAcumulada || "Sem resposta" },
+        { ticketId: ticketId ?? null, usuarioId, role: "user",      conteudo: mensagem },
+        { ticketId: ticketId ?? null, usuarioId, role: "assistant", conteudo: respostaAcumulada || "Sem resposta" },
       ],
     });
     res.write(`data: ${JSON.stringify({ done: true })}\n\n`);

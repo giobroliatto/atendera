@@ -1,10 +1,12 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { confirmarAcao, cancelarAcao, ErroAcao } from "../hitl/acoesPendentes";
+import { usuarioAtual } from "../auth/token";
 
 const router = Router();
 
 // Human-in-the-loop: única forma de executar uma escrita proposta pelo agente do chat.
-// Respostas de erro: 404 (não existe), 409 (já resolvida), 410 (expirou), 422 (falhou ao executar)
+// Respostas de erro: 403 (pedida por outro usuário), 404 (não existe), 409 (já resolvida),
+// 410 (expirou), 422 (falhou ao executar)
 
 function parseId(valor: string | string[] | undefined): number | null {
   const id = Number(valor);
@@ -27,7 +29,7 @@ router.post("/:id/confirmar", async (req: Request, res: Response, next: NextFunc
     return;
   }
   try {
-    res.json(await confirmarAcao(id));
+    res.json(await confirmarAcao(id, usuarioAtual(res).id));
   } catch (err) {
     tratarErro(err, res, next);
   }
@@ -41,7 +43,7 @@ router.post("/:id/cancelar", async (req: Request, res: Response, next: NextFunct
     return;
   }
   try {
-    res.json({ acao: await cancelarAcao(id) });
+    res.json({ acao: await cancelarAcao(id, usuarioAtual(res).id) });
   } catch (err) {
     tratarErro(err, res, next);
   }

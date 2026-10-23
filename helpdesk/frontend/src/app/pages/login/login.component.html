@@ -1,0 +1,33 @@
+<div class="login-container">
+  <mat-card class="login-card">
+    <mat-card-header>
+      <mat-icon mat-card-avatar class="logo">support_agent</mat-icon>
+      <mat-card-title>Entrar no HelpDesk IA</mat-card-title>
+      <mat-card-subtitle>Use o e-mail e a senha cadastrados pela equipe</mat-card-subtitle>
+    </mat-card-header>
+
+    <mat-card-content>
+      <p *ngIf="sessaoExpirada && !erro" class="aviso">Sua sessão expirou. Faça login novamente.</p>
+
+      <form (ngSubmit)="entrar()">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>E-mail</mat-label>
+          <input matInput type="email" name="email" [(ngModel)]="email" autocomplete="username" required />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Senha</mat-label>
+          <input matInput type="password" name="senha" [(ngModel)]="senha" autocomplete="current-password" required />
+        </mat-form-field>
+
+        <p *ngIf="erro" class="erro-msg">{{ erro }}</p>
+
+        <button mat-raised-button color="primary" type="submit" class="full-width btn-entrar"
+          [disabled]="!email.trim() || !senha || entrando">
+          <mat-spinner *ngIf="entrando" diameter="20" />
+          <span *ngIf="!entrando">Entrar</span>
+        </button>
+      </form>
+    </mat-card-content>
+  </mat-card>
+</div>
