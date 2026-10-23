@@ -26,7 +26,7 @@ export class ChatService {
     mensagem: string,
     onChunk: (chunk: string) => void,
     onDone: () => void,
-    onErro: () => void,
+    onErro: (motivo?: string) => void,
     ticketId?: number
   ): void {
     fetch(`${this.baseUrl}/stream`, {
@@ -37,9 +37,9 @@ export class ChatService {
       lerEventosSSE(response, (data) => {
         if (data.chunk) onChunk(data.chunk);
         if (data.done)  onDone();
-        if (data.erro)  onErro();
+        if (data.erro)  onErro(data.erro);
       })
-    ).catch(() => onErro());
+    ).catch((err) => onErro(err?.message));
   }
 
   // Versão orquestrada: envia para /orquestrador/stream que classifica a intenção
@@ -49,7 +49,7 @@ export class ChatService {
     onAgente: (agente: string) => void,
     onChunk: (chunk: string) => void,
     onDone: () => void,
-    onErro: () => void,
+    onErro: (motivo?: string) => void,
     ticketId?: number
   ): void {
     fetch('http://localhost:3000/orquestrador/stream', {
@@ -61,9 +61,9 @@ export class ChatService {
         if (data.agente) onAgente(data.agente);
         if (data.chunk)  onChunk(data.chunk);
         if (data.done)   onDone();
-        if (data.erro)   onErro();
+        if (data.erro)   onErro(data.erro);
       })
-    ).catch(() => onErro());
+    ).catch((err) => onErro(err?.message));
   }
 
   buscarHistorico(ticketId?: number): Observable<Mensagem[]> {

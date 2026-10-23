@@ -11,7 +11,7 @@ export class RelatorioService {
     mensagem: string,
     onChunk: (chunk: string) => void,
     onDone: () => void,
-    onErro: () => void
+    onErro: (motivo?: string) => void
   ): void {
     fetch(`${this.baseUrl}/stream`, {
       method: 'POST',
@@ -21,8 +21,8 @@ export class RelatorioService {
       lerEventosSSE(response, (data) => {
         if (data.chunk) onChunk(data.chunk);
         if (data.done)  onDone();
-        if (data.erro)  onErro();
+        if (data.erro)  onErro(data.erro);
       })
-    ).catch(() => onErro());
+    ).catch((err) => onErro(err?.message));
   }
 }
