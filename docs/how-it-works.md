@@ -132,7 +132,14 @@ messages += [
 Claude now has the data: stop_reason = "end_turn" → final answer
 ```
 
-The loop (`while stop_reason === "tool_use"`) exists because the model may need several tools in a row, or several in the same turn.
+The loop exists because the model may need several tools in a row, or several in the same turn. Both chat agents use the same implementation, [`loopAgente.ts`](../helpdesk/backend/src/agents/loopAgente.ts), which also:
+
+- stops after **8 rounds** of tool calls, so a confused model can't loop forever;
+- appends a notice when the answer hits `max_tokens` (2048 for the interactive agent, 4096 for reports), instead of ending mid-sentence silently;
+- returns a message on a `refusal` instead of an empty answer;
+- writes the observability log in a `finally`, so tokens spent on a call that fails midway are still counted.
+
+Its tests ([`loopAgente.test.ts`](../helpdesk/backend/src/agents/loopAgente.test.ts)) replace the Anthropic client with a fake one, so they run without an API key.
 
 **API rule:** every `tool_use` block needs a matching `tool_result` in the next `user` message. If Claude asks for two tools in one response, the next message carries both results.
 
@@ -402,7 +409,8 @@ helpdesk/backend/src/
 │   ├── agenteAutomatico.ts  triage when a ticket is created (RAG, simple or CoT)
 │   ├── agenteInterativo.ts  chat with tool use, RAG and streaming
 │   ├── agenteRelatorios.ts  stateless analytics with tool use and streaming
-│   └── orquestrador.ts      classifies the intent and routes to the right agent
+│   ├── orquestrador.ts      classifies the intent and routes to the right agent
+│   └── loopAgente.ts        tool use loop shared by the chat agents
 ├── auth/                    scrypt password hashing and JWT
 ├── guardrails/              input validation
 ├── hitl/                    pending actions (human-in-the-loop)

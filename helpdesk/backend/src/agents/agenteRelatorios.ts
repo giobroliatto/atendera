@@ -1,9 +1,5 @@
-import Anthropic from "@anthropic-ai/sdk";
-import { client, MODELO_PRINCIPAL } from "../ia/claude";
 import { relatorioToolsSchema, executarRelatorioTool } from "../tools/relatorioTools";
-import { logChamadaIA } from "../observabilidade/logger";
-import { executarToolComoResultado } from "../tools/executarTool";
-
+import { executarLoopAgente } from "./loopAgente";
 
 const SYSTEM_RELATORIOS = `Você é um analista de dados especializado em helpdesk.
 Gera relatórios claros, objetivos e acionáveis sobre os tickets de suporte.
@@ -32,74 +28,25 @@ Responda apenas sobre análise de tickets de helpdesk. Recuse qualquer pedido fo
 //
 // Agente especializado em análise e geração de relatórios.
 // Stateless: cada consulta é independente (sem histórico persistido).
-// Usa tool use loop + streaming igual ao agente interativo.
+// Usa o mesmo loop de tool use + streaming do agente interativo.
 // ================================================================
 export async function agenteRelatorioStream(
   mensagemUsuario: string,
   onChunk: (chunk: string) => void
 ): Promise<void> {
-
   const hoje = new Date().toLocaleDateString("pt-BR");
-  const systemComData = `Data de hoje: ${hoje}.\n\n` + SYSTEM_RELATORIOS;
 
-  const messages: Anthropic.MessageParam[] = [
-    { role: "user", content: mensagemUsuario },
-  ];
+  const resposta = await executarLoopAgente({
+    agente:    "relatorio",
+    system:    `Data de hoje: ${hoje}.\n\n` + SYSTEM_RELATORIOS,
+    tools:     relatorioToolsSchema,
+    executor:  executarRelatorioTool,
+    messages:  [{ role: "user", content: mensagemUsuario }],
+    maxTokens: 4096, // relatórios trazem tabelas e insights; só é cobrado o que é gerado
+    onChunk,
+  });
 
-  let respostaFinal = "";
-
-  // acumuladores de observabilidade
-  const inicio = Date.now();
-  let totalInputTokens = 0, totalOutputTokens = 0, toolCallCount = 0;
-
-  while (true) {
-    const stream = client.messages.stream({
-      model: MODELO_PRINCIPAL,
-      max_tokens: 800,
-      system: systemComData,
-      tools: relatorioToolsSchema,
-      messages,
-    });
-
-    for await (const event of stream) {
-      if (
-        event.type === "content_block_delta" &&
-        event.delta.type === "text_delta"
-      ) {
-        onChunk(event.delta.text);
-        respostaFinal += event.delta.text;
-      }
-    }
-
-    const finalMsg = await stream.finalMessage();
-    totalInputTokens += finalMsg.usage.input_tokens;
-    totalOutputTokens += finalMsg.usage.output_tokens;
-
-    if (finalMsg.stop_reason !== "tool_use") break;
-
-    toolCallCount += finalMsg.content.filter(b => b.type === "tool_use").length;
-
-    messages.push({ role: "assistant", content: finalMsg.content });
-    const toolResults: Anthropic.ToolResultBlockParam[] = [];
-    for (const block of finalMsg.content) {
-      if (block.type !== "tool_use") continue;
-      toolResults.push(await executarToolComoResultado(block, executarRelatorioTool));
-    }
-    messages.push({ role: "user", content: toolResults });
-    respostaFinal = "";
-  }
-
-  if (!respostaFinal) {
+  if (!resposta) {
     onChunk("Não consegui gerar o relatório.");
   }
-
-  logChamadaIA({
-    modelo:       MODELO_PRINCIPAL,
-    agente:       "relatorio",
-    inputTokens:  totalInputTokens,
-    outputTokens: totalOutputTokens,
-    latenciaMs:   Date.now() - inicio,
-    toolCalls:    toolCallCount,
-    ticketId:     null,
-  }).catch(console.error);
 }

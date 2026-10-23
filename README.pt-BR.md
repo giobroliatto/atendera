@@ -104,7 +104,7 @@ Cada agente tem um system prompt pequeno e focado, em vez de um prompt único qu
 
 ### Loop de tool use
 
-Os agentes interativo e de relatórios rodam o loop padrão de tool use: o modelo pede uma ou mais ferramentas, o servidor executa e devolve todos os `tool_result` numa única mensagem, e o loop se repete até o modelo escrever a resposta final. Os argumentos das ferramentas são validados com Zod antes de acessar o banco, e uma ferramenta que falha (um ticket inexistente, por exemplo) volta para o modelo como `is_error: true`, para que ele explique o problema em vez de a requisição inteira falhar.
+Os agentes interativo e de relatórios compartilham um único loop de tool use ([`loopAgente.ts`](helpdesk/backend/src/agents/loopAgente.ts)): o modelo pede uma ou mais ferramentas, o servidor executa e devolve todos os `tool_result` numa única mensagem, e o loop se repete até o modelo escrever a resposta final. Ele para depois de 8 rodadas de ferramentas, avisa quando a resposta é cortada por `max_tokens` em vez de terminar em silêncio e registra os tokens gastos mesmo quando a chamada falha no meio. Os argumentos das ferramentas são validados com Zod antes de acessar o banco, e uma ferramenta que falha (um ticket inexistente, por exemplo) volta para o modelo como `is_error: true`, para que ele explique o problema em vez de a requisição inteira falhar.
 
 ### Human-in-the-loop garantido pelo servidor
 
@@ -150,7 +150,7 @@ O [`src/mcp/server.ts`](helpdesk/backend/src/mcp/server.ts) expõe as ferramenta
 | Backend | Node.js 22, Express 5, Prisma 7 + SQLite (adapter do better-sqlite3), Zod, JWT, express-rate-limit |
 | IA | API do Claude (Anthropic SDK), MCP SDK, `@xenova/transformers` para embeddings locais |
 | Frontend | Angular 21 (standalone), Angular Material, RxJS, marked |
-| Testes | Vitest (builder de testes unitários do Angular) |
+| Testes | Vitest (backend, e frontend pelo builder de testes unitários do Angular) |
 
 ---
 
@@ -202,8 +202,8 @@ npx ts-node src/mcp/server.ts
 ### 4. Testes
 
 ```bash
+cd helpdesk/backend && npm run typecheck && npm test     # não precisa de chave da Anthropic nem de banco
 cd helpdesk/frontend && npx ng test --watch=false
-cd helpdesk/backend && npx tsc --noEmit
 ```
 
 <details>
@@ -228,6 +228,7 @@ cd helpdesk/backend && npx tsc --noEmit
 |---|---|
 | `npm run dev` | Sobe a API com ts-node |
 | `npm run build` / `npm start` | Compila para `dist/` e roda a versão compilada |
+| `npm test` / `npm run typecheck` | Testes unitários (Vitest) / checagem de tipos |
 | `npm run db:migrate` | Aplica as migrations do Prisma |
 | `npm run db:studio` | Abre o Prisma Studio |
 | `npm run usuario:criar -- "Nome" email senha` | Cria um usuário (ou redefine a senha) |
