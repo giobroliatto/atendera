@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { Mensagem } from '../models/ticket.model';
+import { lerEventosSSE } from './sse';
 
 @Injectable({ providedIn: 'root' })
 export class ChatService {
@@ -32,27 +33,13 @@ export class ChatService {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ mensagem, ticketId }),
-    }).then(async (response) => {
-      const reader = response.body!.getReader();
-      const decoder = new TextDecoder();
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        // Um único read() pode conter múltiplos eventos SSE — processamos linha por linha
-        const text = decoder.decode(value, { stream: true });
-        for (const line of text.split('\n')) {
-          if (!line.startsWith('data: ')) continue;
-          try {
-            const data = JSON.parse(line.slice(6));
-            if (data.chunk) onChunk(data.chunk);
-            if (data.done)  onDone();
-            if (data.erro)  onErro();
-          } catch { /* linha parcial entre dois reads — ignora */ }
-        }
-      }
-    }).catch(() => onErro());
+    }).then((response) =>
+      lerEventosSSE(response, (data) => {
+        if (data.chunk) onChunk(data.chunk);
+        if (data.done)  onDone();
+        if (data.erro)  onErro();
+      })
+    ).catch(() => onErro());
   }
 
   // Versão orquestrada: envia para /orquestrador/stream que classifica a intenção
@@ -69,27 +56,14 @@ export class ChatService {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ mensagem, ticketId }),
-    }).then(async (response) => {
-      const reader = response.body!.getReader();
-      const decoder = new TextDecoder();
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        const text = decoder.decode(value, { stream: true });
-        for (const line of text.split('\n')) {
-          if (!line.startsWith('data: ')) continue;
-          try {
-            const data = JSON.parse(line.slice(6));
-            if (data.agente) onAgente(data.agente);
-            if (data.chunk)  onChunk(data.chunk);
-            if (data.done)   onDone();
-            if (data.erro)   onErro();
-          } catch { /* linha parcial — ignora */ }
-        }
-      }
-    }).catch(() => onErro());
+    }).then((response) =>
+      lerEventosSSE(response, (data) => {
+        if (data.agente) onAgente(data.agente);
+        if (data.chunk)  onChunk(data.chunk);
+        if (data.done)   onDone();
+        if (data.erro)   onErro();
+      })
+    ).catch(() => onErro());
   }
 
   buscarHistorico(ticketId?: number): Observable<Mensagem[]> {
