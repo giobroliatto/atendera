@@ -139,10 +139,10 @@ export class ChatComponent implements OnInit {
           this.scrollDown();
         });
       },
-      () => {
+      (motivo) => {
         this.ngZone.run(() => {
           if (!streamingMsg.conteudo) {
-            streamingMsg.conteudo = 'Erro ao processar a mensagem.';
+            streamingMsg.conteudo = motivo || 'Erro ao processar a mensagem.';
           }
           this.enviando = false;
         });
