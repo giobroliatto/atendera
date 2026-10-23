@@ -132,7 +132,14 @@ messages += [
 Agora Claude tem os dados: stop_reason = "end_turn" → resposta final
 ```
 
-O loop (`while stop_reason === "tool_use"`) existe porque o modelo pode precisar de várias ferramentas em sequência, ou de várias no mesmo turno.
+O loop existe porque o modelo pode precisar de várias ferramentas em sequência, ou de várias no mesmo turno. Os dois agentes do chat usam a mesma implementação, o [`loopAgente.ts`](../helpdesk/backend/src/agents/loopAgente.ts), que também:
+
+- para depois de **8 rodadas** de ferramentas, para um modelo confuso não ficar em loop para sempre;
+- acrescenta um aviso quando a resposta atinge o `max_tokens` (2048 no agente interativo, 4096 nos relatórios), em vez de terminar no meio da frase em silêncio;
+- devolve uma mensagem em caso de `refusal` em vez de uma resposta vazia;
+- grava o log de observabilidade num `finally`, então os tokens de uma chamada que falha no meio continuam contabilizados.
+
+Os testes dele ([`loopAgente.test.ts`](../helpdesk/backend/src/agents/loopAgente.test.ts)) trocam o cliente da Anthropic por um falso, então rodam sem API key.
 
 **Regra da API:** todo bloco `tool_use` precisa de um `tool_result` correspondente na próxima mensagem `user`. Se Claude pedir duas ferramentas numa resposta, a próxima mensagem leva os dois resultados.
 
@@ -402,7 +409,8 @@ helpdesk/backend/src/
 │   ├── agenteAutomatico.ts  triagem na criação do ticket (RAG, simples ou CoT)
 │   ├── agenteInterativo.ts  chat com tool use, RAG e streaming
 │   ├── agenteRelatorios.ts  análises sem estado com tool use e streaming
-│   └── orquestrador.ts      classifica a intenção e roteia para o agente certo
+│   ├── orquestrador.ts      classifica a intenção e roteia para o agente certo
+│   └── loopAgente.ts        loop de tool use compartilhado pelos agentes do chat
 ├── auth/                    hash de senha com scrypt e JWT
 ├── guardrails/              validação de input
 ├── hitl/                    ações pendentes (human-in-the-loop)

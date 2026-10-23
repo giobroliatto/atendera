@@ -104,7 +104,7 @@ Each agent keeps a small, focused system prompt instead of one prompt that tries
 
 ### Tool use loop
 
-The interactive and reports agents run the standard tool use loop: the model asks for one or more tools, the server runs them and sends back every `tool_result` in a single message, and the loop repeats until the model writes its final answer. Tool arguments are validated with Zod before touching the database, and a failing tool (an unknown ticket, for example) goes back to the model as `is_error: true` so it can explain the problem instead of the whole request failing.
+The interactive and reports agents share one tool use loop ([`loopAgente.ts`](helpdesk/backend/src/agents/loopAgente.ts)): the model asks for one or more tools, the server runs them and sends back every `tool_result` in a single message, and the loop repeats until the model writes its final answer. It stops after 8 rounds of tool calls, says so when an answer is cut by `max_tokens` instead of ending silently, and logs the tokens spent even when a call fails midway. Tool arguments are validated with Zod before touching the database, and a failing tool (an unknown ticket, for example) goes back to the model as `is_error: true` so it can explain the problem instead of the whole request failing.
 
 ### Human-in-the-loop enforced by the server
 
@@ -150,7 +150,7 @@ JWT login, passwords hashed with `scrypt` and a random salt, rate limiting on fa
 | Backend | Node.js 22, Express 5, Prisma 7 + SQLite (better-sqlite3 adapter), Zod, JWT, express-rate-limit |
 | AI | Claude API (Anthropic SDK), MCP SDK, `@xenova/transformers` for local embeddings |
 | Frontend | Angular 21 (standalone), Angular Material, RxJS, marked |
-| Tests | Vitest (Angular unit-test builder) |
+| Tests | Vitest (backend, and frontend through the Angular unit-test builder) |
 
 ---
 
@@ -202,8 +202,8 @@ npx ts-node src/mcp/server.ts
 ### 4. Tests
 
 ```bash
+cd helpdesk/backend && npm run typecheck && npm test     # no Anthropic key or database needed
 cd helpdesk/frontend && npx ng test --watch=false
-cd helpdesk/backend && npx tsc --noEmit
 ```
 
 <details>
@@ -228,6 +228,7 @@ cd helpdesk/backend && npx tsc --noEmit
 |---|---|
 | `npm run dev` | Starts the API with ts-node |
 | `npm run build` / `npm start` | Compiles to `dist/` and runs the compiled build |
+| `npm test` / `npm run typecheck` | Unit tests (Vitest) / type checking |
 | `npm run db:migrate` | Applies Prisma migrations |
 | `npm run db:studio` | Opens Prisma Studio |
 | `npm run usuario:criar -- "Name" email password` | Creates a user (or resets their password) |
