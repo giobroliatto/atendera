@@ -1,4 +1,6 @@
+import { z } from "zod";
 import prisma from "../db/prisma";
+import { validarArgs } from "./validarArgs";
 
 // Ferramentas que o agente pode usar para interagir com o banco de dados
 // Cada função aqui é chamada pelo agente quando ele decide que precisa dela
@@ -167,6 +169,24 @@ export const ticketToolsSchema = [
   },
 ];
 
+// Schemas de validação dos argumentos — o modelo pode mandar "7" em vez de 7,
+// um status fora da lista ou omitir campos. Validamos antes de tocar no banco;
+// se falhar, o erro volta ao Claude como tool_result com is_error.
+const STATUS = ["aberto", "em_analise", "resolvido", "fechado"] as const;
+const PRIORIDADES = ["baixa", "media", "alta", "critica"] as const;
+const idTicket = z.coerce.number().int().positive();
+
+const argsSchemas = {
+  listar_tickets: z.object({
+    status: z.enum(STATUS).optional(),
+    prioridade: z.enum(PRIORIDADES).optional(),
+  }),
+  buscar_ticket: z.object({ id: idTicket }),
+  alterar_status: z.object({ id: idTicket, status: z.enum(STATUS) }),
+  alterar_prioridade: z.object({ id: idTicket, prioridade: z.enum(PRIORIDADES) }),
+  adicionar_comentario: z.object({ id: idTicket, conteudo: z.string().trim().min(1).max(2000) }),
+};
+
 // Executor: recebe nome e input da tool, chama a função certa
 export async function executarTicketTool(
   nome: string,
@@ -174,17 +194,25 @@ export async function executarTicketTool(
 ): Promise<unknown> {
   switch (nome) {
     case "listar_tickets":
-      return listarTickets(input as { status?: string; prioridade?: string });
-    case "buscar_ticket":
-      return buscarTicketPorId(input.id as number);
+      return listarTickets(validarArgs(argsSchemas.listar_tickets, input));
+    case "buscar_ticket": {
+      const { id } = validarArgs(argsSchemas.buscar_ticket, input);
+      return buscarTicketPorId(id);
+    }
     case "resumo_tickets":
       return contarTicketsPorStatus();
-    case "alterar_status":
-      return alterarStatus(input.id as number, input.status as string);
-    case "alterar_prioridade":
-      return alterarPrioridade(input.id as number, input.prioridade as string);
-    case "adicionar_comentario":
-      return adicionarComentario(input.id as number, input.conteudo as string);
+    case "alterar_status": {
+      const { id, status } = validarArgs(argsSchemas.alterar_status, input);
+      return alterarStatus(id, status);
+    }
+    case "alterar_prioridade": {
+      const { id, prioridade } = validarArgs(argsSchemas.alterar_prioridade, input);
+      return alterarPrioridade(id, prioridade);
+    }
+    case "adicionar_comentario": {
+      const { id, conteudo } = validarArgs(argsSchemas.adicionar_comentario, input);
+      return adicionarComentario(id, conteudo);
+    }
     default:
       throw new Error(`Ferramenta desconhecida: ${nome}`);
   }
