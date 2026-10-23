@@ -50,6 +50,7 @@
               {{ m.agente === 'relatorio' ? 'Agente de Relatórios' : 'Agente Interativo' }}
             </span>
             <div class="bubble" [innerHTML]="m.conteudo | markdown"></div>
+            <app-acao-card *ngFor="let a of m.acoes" [acao]="a" />
           </div>
           <div *ngIf="m.role === 'user'" class="avatar">
             <mat-icon>person</mat-icon>

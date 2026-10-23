@@ -6,6 +6,7 @@ import chatRouter from "./routes/chat";
 import relatorioRouter from "./routes/relatorio";
 import orquestradorRouter from "./routes/orquestrador";
 import logsRouter from "./routes/logs";
+import acoesRouter from "./routes/acoes";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -25,6 +26,7 @@ app.use("/chat", chatRouter);
 app.use("/relatorio", relatorioRouter);
 app.use("/orquestrador", orquestradorRouter);
 app.use("/logs", logsRouter);
+app.use("/acoes", acoesRouter);
 
 // Health check
 app.get("/health", (_req, res) => {
