@@ -13,6 +13,8 @@
 ![Claude API](https://img.shields.io/badge/Claude_API-D97757?logo=anthropic&logoColor=white)
 ![MCP](https://img.shields.io/badge/MCP-server-000000)
 
+[![CI](https://github.com/giobroliatto/helpdesk-ia/actions/workflows/ci.yml/badge.svg)](https://github.com/giobroliatto/helpdesk-ia/actions/workflows/ci.yml)
+
 </div>
 
 [English](README.md) · **Português**
@@ -154,7 +156,7 @@ O [`src/mcp/server.ts`](helpdesk/backend/src/mcp/server.ts) expõe as ferramenta
 | Backend | Node.js 22, Express 5, Prisma 7 + SQLite (adapter do better-sqlite3), Zod, JWT, express-rate-limit |
 | IA | API do Claude (Anthropic SDK), MCP SDK, `@xenova/transformers` para embeddings locais |
 | Frontend | Angular 21 (standalone), Angular Material, RxJS, marked |
-| Testes | Vitest (backend, e frontend pelo builder de testes unitários do Angular) |
+| Testes e CI | Vitest (backend, e frontend pelo builder de testes unitários do Angular), GitHub Actions |
 
 ---
 
@@ -209,6 +211,8 @@ npx ts-node src/mcp/server.ts
 cd helpdesk/backend && npm run typecheck && npm test     # não precisa de chave da Anthropic nem de banco
 cd helpdesk/frontend && npx ng test --watch=false
 ```
+
+O [GitHub Actions](.github/workflows/ci.yml) roda checagem de tipos, testes e build do backend e do frontend a cada push e pull request.
 
 <details>
 <summary><strong>Variáveis de ambiente do backend</strong></summary>
