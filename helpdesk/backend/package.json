@@ -9,7 +9,9 @@
     "start": "node dist/index.js",
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
-    "usuario:criar": "ts-node src/scripts/criarUsuario.ts"
+    "usuario:criar": "ts-node src/scripts/criarUsuario.ts",
+    "db:seed": "ts-node src/scripts/seed.ts",
+    "kb:popular": "ts-node src/scripts/popularBaseConhecimento.ts"
   },
   "keywords": [],
   "author": "",

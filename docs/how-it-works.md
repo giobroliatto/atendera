@@ -247,12 +247,14 @@ Two vectors are similar when they point in the same direction. The embedding mod
 
 ### Knowledge base
 
-[`scripts/popular-base-conhecimento.js`](../helpdesk/backend/scripts/popular-base-conhecimento.js) creates 10 IT articles (password reset, offline printer, VPN, email on the phone, slow computer, access requests, Teams audio, file recovery, monitor with no signal, installing software) and stores each one with its vector:
+[`rag/artigos.ts`](../helpdesk/backend/src/rag/artigos.ts) holds 10 IT articles (password reset, offline printer, VPN, email on the phone, slow computer, access requests, Teams audio, file recovery, monitor with no signal, installing software) and [`popularBaseConhecimento.ts`](../helpdesk/backend/src/scripts/popularBaseConhecimento.ts) stores each one with its vector. All vectors are computed before the old base is replaced, in a single transaction, so a failed model download doesn't wipe it:
 
 ```bash
 cd helpdesk/backend
-node scripts/popular-base-conhecimento.js   # downloads the model (~80 MB) on the first run
+npm run kb:popular   # also runs as part of npm run db:seed; downloads the model (~80 MB) on the first run
 ```
+
+If the embedding model can't be loaded, the search is skipped with a warning and the agents keep answering without the extra context.
 
 ---
 
@@ -405,7 +407,7 @@ helpdesk/backend/src/
 ├── observabilidade/         per-call logging of tokens, cost and latency
 ├── rag/                     embeddings and similarity search
 ├── routes/                  auth, tickets, chat, orquestrador, relatorio, acoes, logs
-├── scripts/criarUsuario.ts  creates users
+├── scripts/                 creates users, seeds sample data, rebuilds the knowledge base
 ├── tools/                   tool schemas, executors and argument validation
 └── db/prisma.ts             PrismaClient with the better-sqlite3 adapter
 

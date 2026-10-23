@@ -1,19 +1,7 @@
-// Script que popula a base de conhecimento para RAG
-// Execução: node scripts/popular-base-conhecimento.js
-// ATENÇÃO: Na primeira execução, baixa o modelo (~80MB). Aguarde.
-
-const { PrismaBetterSqlite3 } = require('@prisma/adapter-better-sqlite3');
-const { PrismaClient } = require('@prisma/client');
-const path = require('path');
-
-const dbPath = path.join(__dirname, '..', 'prisma', 'helpdesk.db');
-const adapter = new PrismaBetterSqlite3({ url: dbPath });
-const prisma = new PrismaClient({ adapter });
-
-// Base de conhecimento: artigos de suporte de TI
+// Base de conhecimento de exemplo: artigos de suporte de TI usados pelo RAG.
 // Cada artigo vira um vetor de 384 dimensões que representa seu SIGNIFICADO.
-// Quando o usuário perguntar algo similar, o sistema encontra automaticamente.
-const artigos = [
+// Quando o usuário perguntar algo parecido, o sistema encontra o artigo automaticamente.
+export const ARTIGOS_BASE_CONHECIMENTO: Array<{ titulo: string; conteudo: string }> = [
   {
     titulo: "Reset de senha - Active Directory",
     conteudo: "Para redefinir sua senha de rede: 1) Acesse o portal de TI em ti.empresa.com/reset 2) Informe seu CPF e e-mail corporativo 3) Você receberá um link em até 2 minutos. Se não receber, verifique o spam. 4) A nova senha deve ter ao menos 8 caracteres, uma letra maiúscula e um número. 5) Em caso de bloqueio de conta, entre em contato com ti@empresa.com ou abra um ticket com urgência.",
@@ -55,43 +43,3 @@ const artigos = [
     conteudo: "Para instalar programas no computador corporativo: 1) Acesse o Portal de Software em intranet/ti/software — programas aprovados (Chrome, Firefox, 7-Zip, VLC, etc.) podem ser instalados sem chamado de TI. 2) Para softwares não listados: abra um ticket com o nome do programa, versão, link de download e justificativa de negócio. 3) Prazo de análise e instalação: 2 dias úteis. 4) Não instale softwares de fontes desconhecidas — o antivírus pode bloquear e o acesso ao sistema pode ser suspenso por política de segurança. 5) Atualizações do Windows e antivírus são automáticas e ocorrem fora do horário comercial.",
   },
 ];
-
-async function popular() {
-  console.log("Iniciando população da base de conhecimento...");
-  console.log("Na primeira execução, o modelo será baixado (~80MB). Aguarde.\n");
-
-  // dynamic import: @xenova/transformers é ESM, mas funciona com import() em CJS
-  const { pipeline } = await import('@xenova/transformers');
-
-  console.log("Carregando modelo de embeddings...");
-  const extractor = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
-  console.log("Modelo pronto!\n");
-
-  // Limpa a base antes de repopular
-  await prisma.baseConhecimento.deleteMany({});
-  console.log("Base anterior limpa.\n");
-
-  for (const artigo of artigos) {
-    // Gera embedding do título + conteúdo concatenados
-    // (título junto melhora a qualidade da busca por assunto)
-    const textoParaEmbedding = `${artigo.titulo}. ${artigo.conteudo}`;
-    const output = await extractor(textoParaEmbedding, { pooling: 'mean', normalize: true });
-    const embedding = JSON.stringify(Array.from(output.data));
-
-    await prisma.baseConhecimento.create({
-      data: {
-        titulo: artigo.titulo,
-        conteudo: artigo.conteudo,
-        embedding,
-      },
-    });
-
-    console.log(`✓ ${artigo.titulo}`);
-  }
-
-  await prisma.$disconnect();
-  console.log(`\n✅ Base populada com ${artigos.length} artigos de conhecimento!`);
-  console.log("Agora o agente de chat usa esses artigos como contexto nas respostas.");
-}
-
-popular().catch(console.error);
