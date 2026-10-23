@@ -52,7 +52,8 @@ type Executor = (nome: string, input: Record<string, unknown>) => Promise<unknow
 function opcoes(executor: Executor = vi.fn(async () => ({ ok: true })), onChunk?: (c: string) => void) {
   return {
     agente: "teste",
-    system: "system",
+    systemFixo: "instruções fixas",
+    systemVariavel: "Data de hoje: 23/10/2026.",
     tools: [],
     executor,
     messages: [{ role: "user" as const, content: "pergunta" }],
@@ -134,5 +135,22 @@ describe("executarLoopAgente", () => {
 
     await expect(executarLoopAgente(opcoes())).rejects.toThrow();
     expect(logs[0]).toMatchObject({ inputTokens: 50, outputTokens: 5, toolCalls: 1 });
+  });
+
+  it("prompt caching: breakpoint só nas instruções fixas e tokens de cache somados no log", async () => {
+    respostasFila.push(
+      mensagem("tool_use", [toolUse("t1", "resumo_tickets", {})],
+        { input_tokens: 40, output_tokens: 5, cache_creation_input_tokens: 1800, cache_read_input_tokens: 0 } as never),
+      mensagem("end_turn", [texto("ok")],
+        { input_tokens: 60, output_tokens: 8, cache_creation_input_tokens: 0, cache_read_input_tokens: 1800 } as never)
+    );
+
+    await executarLoopAgente(opcoes());
+
+    expect(chamadas[0].system).toEqual([
+      { type: "text", text: "instruções fixas", cache_control: { type: "ephemeral" } },
+      { type: "text", text: "Data de hoje: 23/10/2026." },
+    ]);
+    expect(logs[0]).toMatchObject({ inputTokens: 100, cacheEscritaTokens: 1800, cacheLeituraTokens: 1800 });
   });
 });

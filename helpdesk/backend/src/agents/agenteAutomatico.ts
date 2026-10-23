@@ -169,7 +169,14 @@ export async function agenteAuditarTicket(ticketId: number, comRaciocinio = fals
     const response = await client.messages.create({
       model: MODELO_PRINCIPAL,
       max_tokens: comRaciocinio ? 600 : 200,
-      system: comRaciocinio ? SYSTEM_AUDITOR_COT : SYSTEM_AUDITOR_SIMPLES,
+      // cache_control: o system é igual em todo ticket, então fica no cache por 5 minutos.
+      // O modo CoT (com os exemplos few-shot) é o que passa do mínimo cacheável;
+      // no modo simples o prompt é curto demais e a marcação é ignorada, sem custo.
+      system: [{
+        type: "text",
+        text: comRaciocinio ? SYSTEM_AUDITOR_COT : SYSTEM_AUDITOR_SIMPLES,
+        cache_control: { type: "ephemeral" },
+      }],
       messages: [{ role: "user", content: promptComRAG }],
     });
 
@@ -178,6 +185,8 @@ export async function agenteAuditarTicket(ticketId: number, comRaciocinio = fals
       agente:       comRaciocinio ? "automatico_cot" : "automatico",
       inputTokens:  response.usage.input_tokens,
       outputTokens: response.usage.output_tokens,
+      cacheEscritaTokens: response.usage.cache_creation_input_tokens ?? 0,
+      cacheLeituraTokens: response.usage.cache_read_input_tokens ?? 0,
       latenciaMs:   Date.now() - inicio,
       ticketId,
     }).catch(console.error);

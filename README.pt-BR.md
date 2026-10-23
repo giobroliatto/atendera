@@ -44,7 +44,7 @@
 </td>
 <td width="50%" valign="top">
 <img src="docs/logs.png" alt="Painel de observabilidade com tokens, custo e latência por chamada" />
-<sub>O painel <code>/logs</code>: tokens, custo e latência de cada chamada, com filtro por agente.</sub>
+<sub>O painel <code>/logs</code>: modelo, tokens, prompt cache, custo e latência de cada chamada, com filtro por agente.</sub>
 </td>
 </tr>
 </table>
@@ -119,6 +119,10 @@ Os artigos da base de conhecimento viram vetores localmente com `Xenova/all-Mini
 - **Dois modos de triagem.** Simples (~200 tokens de saída) por padrão, ou chain of thought + quatro exemplos few-shot (~600 tokens) quando o usuário pede uma análise detalhada. O raciocínio fica salvo em `raciocinioIA` e aparece no ticket.
 - **Dados frescos em vez de histórico.** O agente interativo é instruído a nunca responder sobre o estado de um ticket a partir do histórico da conversa, só a partir de uma consulta nova às ferramentas.
 
+### Prompt caching
+
+As tools e as instruções fixas de cada agente levam um breakpoint de `cache_control`, então chamadas repetidas em até 5 minutos (as próximas rodadas de um loop de tool use, a próxima mensagem do chat) leem esse prefixo por ~10% do preço de entrada. O que muda a cada chamada (a data do dia, os artigos do RAG) vai num segundo bloco do system, *depois* do breakpoint, para não invalidar o cache. Escritas e leituras do cache são registradas e cobradas separadamente, e o `/logs` mostra quanto do input veio do cache.
+
 ### Guardrails
 
 - Todo input que chega a um modelo passa pelo [`validarInput`](helpdesk/backend/src/guardrails/validarInput.ts): limites de tamanho e padrões conhecidos de prompt injection são recusados antes de gastar tokens.
@@ -131,7 +135,7 @@ As respostas do chat são enviadas como Server-Sent Events enquanto o Claude ger
 
 ### Observabilidade
 
-O [`logger.ts`](helpdesk/backend/src/observabilidade/logger.ts) registra o modelo, tokens de entrada e saída, custo estimado (pelo preço de cada modelo), latência, tool calls e o ticket relacionado de cada chamada, somando todas as iterações do loop de tool use. A página `/logs` mostra os totais e uma tabela com filtro.
+O [`logger.ts`](helpdesk/backend/src/observabilidade/logger.ts) registra o modelo, tokens de entrada e saída, escritas e leituras do prompt cache, custo estimado (pelo preço de cada modelo), latência, tool calls e o ticket relacionado de cada chamada, somando todas as iterações do loop de tool use. A página `/logs` mostra os totais e uma tabela com filtro.
 
 ### Autenticação
 

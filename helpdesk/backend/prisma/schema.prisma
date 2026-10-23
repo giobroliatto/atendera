@@ -88,8 +88,10 @@ model LogChamadaIA {
   id           Int      @id @default(autoincrement())
   agente       String   // "automatico" | "automatico_cot" | "interativo" | "relatorio" | "orquestrador"
   modelo       String?  // modelo que atendeu a chamada (null nos logs anteriores a este campo)
-  inputTokens  Int
+  inputTokens  Int      // fora do cache
   outputTokens Int
+  cacheEscritaTokens Int @default(0) // gravados no prompt cache nesta chamada
+  cacheLeituraTokens Int @default(0) // lidos do prompt cache (custam ~10% do input)
   custoUsd     Float    // calculado com o preço do modelo (tabela em observabilidade/logger.ts)
   latenciaMs   Int
   toolCalls    Int      @default(0)

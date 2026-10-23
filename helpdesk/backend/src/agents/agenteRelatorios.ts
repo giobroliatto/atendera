@@ -37,12 +37,13 @@ export async function agenteRelatorioStream(
   const hoje = new Date().toLocaleDateString("pt-BR");
 
   const resposta = await executarLoopAgente({
-    agente:    "relatorio",
-    system:    `Data de hoje: ${hoje}.\n\n` + SYSTEM_RELATORIOS,
-    tools:     relatorioToolsSchema,
-    executor:  executarRelatorioTool,
-    messages:  [{ role: "user", content: mensagemUsuario }],
-    maxTokens: 4096, // relatórios trazem tabelas e insights; só é cobrado o que é gerado
+    agente:         "relatorio",
+    systemFixo:     SYSTEM_RELATORIOS,
+    systemVariavel: `Data de hoje: ${hoje}.`,
+    tools:          relatorioToolsSchema,
+    executor:       executarRelatorioTool,
+    messages:       [{ role: "user", content: mensagemUsuario }],
+    maxTokens:      4096, // relatórios trazem tabelas e insights; só é cobrado o que é gerado
     onChunk,
   });
 
