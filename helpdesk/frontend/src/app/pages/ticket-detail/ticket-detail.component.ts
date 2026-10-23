@@ -32,6 +32,7 @@ export class TicketDetailComponent implements OnInit, OnDestroy {
   erro = '';
   novoComentario = '';
   enviandoComentario = false;
+  erroComentario = '';
   private pollInterval: ReturnType<typeof setInterval> | null = null;
 
   // em_analise é definido automaticamente pelo agente — o usuário não deve setar manualmente
@@ -91,6 +92,7 @@ export class TicketDetailComponent implements OnInit, OnDestroy {
   enviarComentario(): void {
     if (!this.novoComentario.trim() || !this.ticket || this.enviandoComentario) return;
     this.enviandoComentario = true;
+    this.erroComentario = '';
     this.ticketService.adicionarComentario(this.ticket.id, this.novoComentario).subscribe({
       next: (comentario) => {
         if (!this.ticket!.comentarios) this.ticket!.comentarios = [];
@@ -98,7 +100,10 @@ export class TicketDetailComponent implements OnInit, OnDestroy {
         this.novoComentario = '';
         this.enviandoComentario = false;
       },
-      error: () => { this.enviandoComentario = false; }
+      error: (err) => {
+        this.enviandoComentario = false;
+        this.erroComentario = err.error?.erro ?? 'Não foi possível adicionar o comentário.';
+      }
     });
   }
 

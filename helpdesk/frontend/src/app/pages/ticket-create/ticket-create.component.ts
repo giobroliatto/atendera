@@ -28,6 +28,7 @@ export class TicketCreateComponent {
   comRaciocinio = false;
   enviando = false;
   sucesso = false;
+  erro = '';
   ticketCriadoId: number | null = null;
 
   constructor(private ticketService: TicketService, private router: Router) {}
@@ -36,6 +37,7 @@ export class TicketCreateComponent {
     if (!this.titulo.trim() || !this.descricao.trim()) return;
 
     this.enviando = true;
+    this.erro = '';
     this.ticketService.criar({ titulo: this.titulo, descricao: this.descricao, comRaciocinio: this.comRaciocinio }).subscribe({
       next: (ticket) => {
         this.enviando = false;
@@ -44,7 +46,10 @@ export class TicketCreateComponent {
         // Redireciona para o detalhe após 2s (tempo do agente automático começar a analisar)
         setTimeout(() => this.router.navigate(['/tickets', ticket.id]), 2000);
       },
-      error: () => { this.enviando = false; }
+      error: (err) => {
+        this.enviando = false;
+        this.erro = err.error?.erro ?? 'Não foi possível criar o ticket.';
+      }
     });
   }
 

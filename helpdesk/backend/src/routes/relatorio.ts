@@ -1,5 +1,6 @@
 import { Router, Request, Response } from "express";
 import { agenteRelatorioStream } from "../agents/agenteRelatorios";
+import { validarInput } from "../guardrails/validarInput";
 
 const router = Router();
 
@@ -14,6 +15,12 @@ router.post("/stream", async (req: Request, res: Response) => {
 
   if (!mensagem?.trim()) {
     res.status(400).json({ erro: "mensagem é obrigatória" });
+    return;
+  }
+
+  const validacao = validarInput(mensagem);
+  if (!validacao.valido) {
+    res.status(400).json({ erro: validacao.motivo });
     return;
   }
 

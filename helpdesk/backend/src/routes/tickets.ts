@@ -1,6 +1,7 @@
 import { Router, Request, Response, NextFunction } from "express";
 import prisma from "../db/prisma";
 import { agenteAuditarTicket } from "../agents/agenteAutomatico";
+import { validarInput } from "../guardrails/validarInput";
 
 const router = Router();
 
@@ -65,6 +66,12 @@ router.post("/:id/comentarios", async (req: Request, res: Response, next: NextFu
       return;
     }
 
+    const validacao = validarInput(conteudo);
+    if (!validacao.valido) {
+      res.status(400).json({ erro: validacao.motivo });
+      return;
+    }
+
     const existe = await prisma.ticket.findUnique({ where: { id: ticketId }, select: { id: true } });
     if (!existe) {
       res.status(404).json({ erro: "Ticket não encontrado" });
@@ -92,6 +99,14 @@ router.post("/", async (req: Request, res: Response, next: NextFunction) => {
 
     if (!titulo?.trim() || !descricao?.trim()) {
       res.status(400).json({ erro: "titulo e descricao são obrigatórios" });
+      return;
+    }
+
+    // Título e descrição vão direto para o prompt do agente automático —
+    // é o principal caminho de prompt injection indireta do sistema.
+    const validacao = [validarInput(titulo, 200), validarInput(descricao, 5000)].find((v) => !v.valido);
+    if (validacao) {
+      res.status(400).json({ erro: validacao.motivo });
       return;
     }
 

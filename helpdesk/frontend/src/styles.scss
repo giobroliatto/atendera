@@ -49,3 +49,9 @@ body {
   &.alta    { background: #fdc9c9; color: #5a0909; }
   &.critica { background: #c55e5e; color: #ffeeee; }
 }
+
+.erro-msg {
+  margin: 8px 0 0;
+  color: #c62828;
+  font-size: 13px;
+}

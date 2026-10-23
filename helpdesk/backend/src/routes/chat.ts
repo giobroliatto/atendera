@@ -66,6 +66,12 @@ router.post("/stream", async (req: Request, res: Response) => {
     return;
   }
 
+  const validacao = validarInput(mensagem);
+  if (!validacao.valido) {
+    res.status(400).json({ erro: validacao.motivo });
+    return;
+  }
+
   const historico = await prisma.mensagemChat.findMany({
     where: { ticketId: ticketId ?? null },
     orderBy: { criadoEm: "desc" },

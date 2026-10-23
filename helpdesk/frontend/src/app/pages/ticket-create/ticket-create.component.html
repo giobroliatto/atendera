@@ -37,6 +37,8 @@
           Incluir raciocínio detalhado
           <span class="token-hint">(~3× mais tokens)</span>
         </mat-checkbox>
+
+        <p *ngIf="erro" class="erro-msg">{{ erro }}</p>
       </div>
 
       <!-- Feedback de sucesso -->
