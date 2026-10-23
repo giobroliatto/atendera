@@ -1,8 +1,15 @@
 import { Router, Request, Response, NextFunction } from "express";
 import prisma from "../db/prisma";
 import { agenteAuditarTicket } from "../agents/agenteAutomatico";
+import { validarInput } from "../guardrails/validarInput";
 
 const router = Router();
+
+// Converte o :id da URL em número inteiro positivo; null se inválido ("abc", "1.5", "-3")
+function parseId(valor: string | string[] | undefined): number | null {
+  const id = Number(valor);
+  return Number.isInteger(id) && id > 0 ? id : null;
+}
 
 // GET /tickets — lista todos os tickets
 router.get("/", async (_req: Request, res: Response, next: NextFunction) => {
@@ -19,8 +26,14 @@ router.get("/", async (_req: Request, res: Response, next: NextFunction) => {
 // GET /tickets/:id — busca um ticket pelo ID com suas mensagens e comentários
 router.get("/:id", async (req: Request, res: Response, next: NextFunction) => {
   try {
+    const id = parseId(req.params.id);
+    if (id === null) {
+      res.status(400).json({ erro: "id do ticket inválido" });
+      return;
+    }
+
     const ticket = await prisma.ticket.findUnique({
-      where: { id: Number(req.params.id) },
+      where: { id },
       include: {
         mensagens: { orderBy: { criadoEm: "asc" } },
         comentarios: { orderBy: { criadoEm: "asc" } },
@@ -41,11 +54,21 @@ router.get("/:id", async (req: Request, res: Response, next: NextFunction) => {
 // POST /tickets/:id/comentarios — adiciona um comentário manual ao ticket
 router.post("/:id/comentarios", async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const ticketId = Number(req.params.id);
+    const ticketId = parseId(req.params.id);
+    if (ticketId === null) {
+      res.status(400).json({ erro: "id do ticket inválido" });
+      return;
+    }
     const { conteudo, autor } = req.body as { conteudo: string; autor?: string };
 
     if (!conteudo?.trim()) {
       res.status(400).json({ erro: "conteudo é obrigatório" });
+      return;
+    }
+
+    const validacao = validarInput(conteudo);
+    if (!validacao.valido) {
+      res.status(400).json({ erro: validacao.motivo });
       return;
     }
 
@@ -79,6 +102,14 @@ router.post("/", async (req: Request, res: Response, next: NextFunction) => {
       return;
     }
 
+    // Título e descrição vão direto para o prompt do agente automático —
+    // é o principal caminho de prompt injection indireta do sistema.
+    const validacao = [validarInput(titulo, 200), validarInput(descricao, 5000)].find((v) => !v.valido);
+    if (validacao) {
+      res.status(400).json({ erro: validacao.motivo });
+      return;
+    }
+
     const ticket = await prisma.ticket.create({
       data: { titulo, descricao },
     });
@@ -98,6 +129,12 @@ router.post("/", async (req: Request, res: Response, next: NextFunction) => {
 // PATCH /tickets/:id — atualiza status de um ticket
 router.patch("/:id", async (req: Request, res: Response, next: NextFunction) => {
   try {
+    const id = parseId(req.params.id);
+    if (id === null) {
+      res.status(400).json({ erro: "id do ticket inválido" });
+      return;
+    }
+
     const { status } = req.body as { status: string };
     const statusValidos = ["aberto", "em_analise", "resolvido", "fechado"];
 
@@ -106,8 +143,14 @@ router.patch("/:id", async (req: Request, res: Response, next: NextFunction) => 
       return;
     }
 
+    const existe = await prisma.ticket.findUnique({ where: { id }, select: { id: true } });
+    if (!existe) {
+      res.status(404).json({ erro: "Ticket não encontrado" });
+      return;
+    }
+
     const ticket = await prisma.ticket.update({
-      where: { id: Number(req.params.id) },
+      where: { id },
       data: { status },
     });
 

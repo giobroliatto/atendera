@@ -6,12 +6,18 @@ import chatRouter from "./routes/chat";
 import relatorioRouter from "./routes/relatorio";
 import orquestradorRouter from "./routes/orquestrador";
 import logsRouter from "./routes/logs";
+import acoesRouter from "./routes/acoes";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middlewares
-app.use(cors()); // Permite requisições de qualquer origem (dev)
+// CORS: só o frontend pode chamar a API pelo navegador.
+// CORS_ORIGIN aceita várias origens separadas por vírgula.
+const origensPermitidas = (process.env.CORS_ORIGIN || "http://localhost:4200")
+  .split(",")
+  .map((o) => o.trim());
+app.use(cors({ origin: origensPermitidas }));
 app.use(express.json());
 
 // Rotas
@@ -20,6 +26,7 @@ app.use("/chat", chatRouter);
 app.use("/relatorio", relatorioRouter);
 app.use("/orquestrador", orquestradorRouter);
 app.use("/logs", logsRouter);
+app.use("/acoes", acoesRouter);
 
 // Health check
 app.get("/health", (_req, res) => {
@@ -35,7 +42,7 @@ app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
 app.listen(PORT, () => {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   console.log(`\n✅ Backend rodando em http://localhost:${PORT}`);
-  console.log(`   ANTHROPIC_API_KEY: ${apiKey ? `✅ carregada (${apiKey.slice(0, 20)}...)` : "❌ NÃO definida!"}`);
+  console.log(`   ANTHROPIC_API_KEY: ${apiKey ? "✅ carregada" : "❌ NÃO definida!"}`);
   console.log(`   Rotas disponíveis:`);
   console.log(`   GET    /health`);
   console.log(`   GET    /tickets`);

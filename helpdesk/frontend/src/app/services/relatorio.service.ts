@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { lerEventosSSE } from './sse';
 
 @Injectable({ providedIn: 'root' })
 export class RelatorioService {
@@ -10,31 +11,18 @@ export class RelatorioService {
     mensagem: string,
     onChunk: (chunk: string) => void,
     onDone: () => void,
-    onErro: () => void
+    onErro: (motivo?: string) => void
   ): void {
     fetch(`${this.baseUrl}/stream`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ mensagem }),
-    }).then(async (response) => {
-      const reader = response.body!.getReader();
-      const decoder = new TextDecoder();
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        const text = decoder.decode(value, { stream: true });
-        for (const line of text.split('\n')) {
-          if (!line.startsWith('data: ')) continue;
-          try {
-            const data = JSON.parse(line.slice(6));
-            if (data.chunk) onChunk(data.chunk);
-            if (data.done)  onDone();
-            if (data.erro)  onErro();
-          } catch { /* linha parcial entre dois reads — ignora */ }
-        }
-      }
-    }).catch(() => onErro());
+    }).then((response) =>
+      lerEventosSSE(response, (data) => {
+        if (data.chunk) onChunk(data.chunk);
+        if (data.done)  onDone();
+        if (data.erro)  onErro(data.erro);
+      })
+    ).catch((err) => onErro(err?.message));
   }
 }

@@ -1,4 +1,6 @@
+import { z } from "zod";
 import prisma from "../db/prisma";
+import { validarArgs } from "./validarArgs";
 
 // ================================================================
 // FERRAMENTAS DO AGENTE DE RELATÓRIOS
@@ -85,6 +87,9 @@ export const relatorioToolsSchema = [
   },
 ];
 
+// Período em dias: inteiro entre 1 e 365 (evita consultas negativas ou absurdas)
+const argsPeriodo = z.object({ dias: z.coerce.number().int().min(1).max(365) });
+
 // Executor: recebe nome e input da tool, chama a função certa
 export async function executarRelatorioTool(
   nome: string,
@@ -92,11 +97,11 @@ export async function executarRelatorioTool(
 ): Promise<unknown> {
   switch (nome) {
     case "tickets_por_periodo":
-      return ticketsPorPeriodo(input.dias as number);
+      return ticketsPorPeriodo(validarArgs(argsPeriodo, input).dias);
     case "distribuicao_tickets":
       return distribuicaoTickets();
     case "tickets_sem_atualizacao":
-      return ticketsSemAtualizacao(input.dias as number);
+      return ticketsSemAtualizacao(validarArgs(argsPeriodo, input).dias);
     default:
       throw new Error(`Ferramenta de relatório desconhecida: ${nome}`);
   }

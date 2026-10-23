@@ -11,6 +11,7 @@ const router = Router();
 // Formato SSE:
 //   data: {"agente": "interativo"}\n\n   ← primeiro evento: qual agente foi acionado
 //   data: {"chunk": "texto..."}\n\n       ← chunks de texto em streaming
+//   data: {"acao": {...}}\n\n             ← ação de escrita proposta, aguardando confirmação (HITL)
 //   data: {"done": true}\n\n              ← fim da resposta
 router.post("/stream", async (req: Request, res: Response) => {
   const { mensagem, ticketId } = req.body as { mensagem: string; ticketId?: number };
@@ -54,6 +55,9 @@ router.post("/stream", async (req: Request, res: Response) => {
       (chunk: string) => {
         respostaAcumulada += chunk;
         res.write(`data: ${JSON.stringify({ chunk })}\n\n`);
+      },
+      (acao) => {
+        res.write(`data: ${JSON.stringify({ acao })}\n\n`);
       }
     );
     await prisma.mensagemChat.createMany({
