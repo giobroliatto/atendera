@@ -2,6 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { agenteChatInterativoStream } from "./agenteInterativo";
 import { agenteRelatorioStream } from "./agenteRelatorios";
 import { logChamadaIA } from "../observabilidade/logger";
+import { AcaoProposta } from "../hitl/acoesPendentes";
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const MODEL = "claude-sonnet-4-5";
@@ -63,14 +64,15 @@ export async function orquestradorStream(
   mensagemUsuario: string,
   historico: Array<{ role: "user" | "assistant"; content: string }>,
   onAgente: (agente: AgenteRoteado) => void,
-  onChunk: (chunk: string) => void
+  onChunk: (chunk: string) => void,
+  onAcaoProposta?: (acao: AcaoProposta) => void
 ): Promise<void> {
   const agente = await classificarIntencao(mensagemUsuario);
 
   if (agente === "ambos") {
     // Intenção mista: roda o agente interativo primeiro (ação) e depois o de relatórios (consulta)
     onAgente("interativo");
-    await agenteChatInterativoStream(ticketId, mensagemUsuario, historico, onChunk);
+    await agenteChatInterativoStream(ticketId, mensagemUsuario, historico, onChunk, onAcaoProposta);
     onAgente("relatorio");
     await agenteRelatorioStream(mensagemUsuario, onChunk);
   } else {
@@ -78,7 +80,7 @@ export async function orquestradorStream(
     if (agente === "relatorio") {
       await agenteRelatorioStream(mensagemUsuario, onChunk);
     } else {
-      await agenteChatInterativoStream(ticketId, mensagemUsuario, historico, onChunk);
+      await agenteChatInterativoStream(ticketId, mensagemUsuario, historico, onChunk, onAcaoProposta);
     }
   }
 }

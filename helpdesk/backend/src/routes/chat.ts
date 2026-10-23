@@ -53,6 +53,7 @@ router.post("/", async (req: Request, res: Response, next: NextFunction) => {
 //
 // Formato dos eventos SSE:
 //   data: {"chunk": "pedaço de texto"}\n\n   ← texto parcial da resposta
+//   data: {"acao": {...}}\n\n               ← ação de escrita proposta, aguardando confirmação (HITL)
 //   data: {"done": true}\n\n               ← sinaliza que terminou
 //   data: {"erro": "mensagem"}\n\n            ← erro durante o processamento
 router.post("/stream", async (req: Request, res: Response) => {
@@ -63,6 +64,12 @@ router.post("/stream", async (req: Request, res: Response) => {
 
   if (!mensagem?.trim()) {
     res.status(400).json({ erro: "mensagem é obrigatória" });
+    return;
+  }
+
+  const validacao = validarInput(mensagem);
+  if (!validacao.valido) {
+    res.status(400).json({ erro: validacao.motivo });
     return;
   }
 
@@ -91,6 +98,9 @@ router.post("/stream", async (req: Request, res: Response) => {
       (chunk) => {
         respostaAcumulada += chunk;
         res.write(`data: ${JSON.stringify({ chunk })}\n\n`);
+      },
+      (acao) => {
+        res.write(`data: ${JSON.stringify({ acao })}\n\n`);
       }
     );
     await prisma.mensagemChat.createMany({

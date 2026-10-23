@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { relatorioToolsSchema, executarRelatorioTool } from "../tools/relatorioTools";
 import { logChamadaIA } from "../observabilidade/logger";
+import { executarToolComoResultado } from "../tools/executarTool";
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const MODEL = "claude-sonnet-4-5";
@@ -83,15 +84,7 @@ export async function agenteRelatorioStream(
     const toolResults: Anthropic.ToolResultBlockParam[] = [];
     for (const block of finalMsg.content) {
       if (block.type !== "tool_use") continue;
-      const resultado = await executarRelatorioTool(
-        block.name,
-        block.input as Record<string, unknown>
-      );
-      toolResults.push({
-        type: "tool_result",
-        tool_use_id: block.id,
-        content: JSON.stringify(resultado),
-      });
+      toolResults.push(await executarToolComoResultado(block, executarRelatorioTool));
     }
     messages.push({ role: "user", content: toolResults });
     respostaFinal = "";

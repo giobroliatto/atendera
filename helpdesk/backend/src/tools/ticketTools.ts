@@ -1,4 +1,6 @@
+import { z } from "zod";
 import prisma from "../db/prisma";
+import { validarArgs } from "./validarArgs";
 
 // Ferramentas que o agente pode usar para interagir com o banco de dados
 // Cada função aqui é chamada pelo agente quando ele decide que precisa dela
@@ -112,10 +114,10 @@ export const ticketToolsSchema = [
   {
     name: "alterar_status",
     description:
-      "Altera o status de um ticket para qualquer valor: aberto, em_analise, resolvido ou fechado. " +
-      "REGRA OBRIGATÓRIA (HUMAN-IN-THE-LOOP): antes de chamar esta tool, use buscar_ticket para " +
-      "mostrar os detalhes atuais e pergunte explicitamente ao usuário se confirma a mudança. " +
-      "SÓ execute após confirmação clara ('sim', 'pode', 'confirmo', etc.).",
+      "Propõe alterar o status de um ticket para: aberto, em_analise, resolvido ou fechado. " +
+      "HUMAN-IN-THE-LOOP: esta tool NÃO altera o ticket — ela registra uma proposta e o usuário " +
+      "confirma ou cancela por um botão na interface. Chame-a quando o usuário pedir a mudança; " +
+      "não peça confirmação por texto.",
     input_schema: {
       type: "object" as const,
       properties: {
@@ -132,10 +134,10 @@ export const ticketToolsSchema = [
   {
     name: "alterar_prioridade",
     description:
-      "Altera a prioridade de um ticket para: baixa, media, alta ou critica. " +
-      "REGRA OBRIGATÓRIA (HUMAN-IN-THE-LOOP): antes de chamar esta tool, use buscar_ticket para " +
-      "mostrar a prioridade atual e pergunte ao usuário se confirma a mudança. " +
-      "SÓ execute após confirmação clara.",
+      "Propõe alterar a prioridade de um ticket para: baixa, media, alta ou critica. " +
+      "HUMAN-IN-THE-LOOP: esta tool NÃO altera o ticket — ela registra uma proposta e o usuário " +
+      "confirma ou cancela por um botão na interface. Chame-a quando o usuário pedir a mudança; " +
+      "não peça confirmação por texto.",
     input_schema: {
       type: "object" as const,
       properties: {
@@ -152,10 +154,9 @@ export const ticketToolsSchema = [
   {
     name: "adicionar_comentario",
     description:
-      "Adiciona um comentário interno ao ticket. Use para registrar observações, " +
-      "atualizações de andamento ou comunicados sobre o ticket. " +
-      "REGRA OBRIGATÓRIA (HUMAN-IN-THE-LOOP): mostre o texto do comentário ao usuário " +
-      "e peça confirmação antes de registrá-lo.",
+      "Propõe adicionar um comentário interno ao ticket (observações, andamento, comunicados). " +
+      "HUMAN-IN-THE-LOOP: esta tool NÃO grava o comentário — ela registra uma proposta e o usuário " +
+      "confirma ou cancela por um botão na interface. Não peça confirmação por texto.",
     input_schema: {
       type: "object" as const,
       properties: {
@@ -167,24 +168,53 @@ export const ticketToolsSchema = [
   },
 ];
 
-// Executor: recebe nome e input da tool, chama a função certa
+// Schemas de validação dos argumentos — o modelo pode mandar "7" em vez de 7,
+// um status fora da lista ou omitir campos. Validamos antes de tocar no banco;
+// se falhar, o erro volta ao Claude como tool_result com is_error.
+const STATUS = ["aberto", "em_analise", "resolvido", "fechado"] as const;
+const PRIORIDADES = ["baixa", "media", "alta", "critica"] as const;
+const idTicket = z.coerce.number().int().positive();
+
+export const argsSchemas = {
+  listar_tickets: z.object({
+    status: z.enum(STATUS).optional(),
+    prioridade: z.enum(PRIORIDADES).optional(),
+  }),
+  buscar_ticket: z.object({ id: idTicket }),
+  alterar_status: z.object({ id: idTicket, status: z.enum(STATUS) }),
+  alterar_prioridade: z.object({ id: idTicket, prioridade: z.enum(PRIORIDADES) }),
+  adicionar_comentario: z.object({ id: idTicket, conteudo: z.string().trim().min(1).max(2000) }),
+};
+
+// Ferramentas que alteram dados — o agente só pode PROPOR essas ações (ver hitl/acoesPendentes.ts)
+export const FERRAMENTAS_ESCRITA = ["alterar_status", "alterar_prioridade", "adicionar_comentario"] as const;
+export type FerramentaEscrita = (typeof FERRAMENTAS_ESCRITA)[number];
+
+export function ehFerramentaEscrita(nome: string): nome is FerramentaEscrita {
+  return (FERRAMENTAS_ESCRITA as readonly string[]).includes(nome);
+}
+
+// Executor: recebe nome e input da tool, chama a função certa.
+// Só executa LEITURAS — escritas passam obrigatoriamente pela confirmação humana
+// (executarToolComHITL). Recusar aqui é defesa em profundidade: mesmo que algum
+// agente chame este executor direto, nenhuma escrita acontece sem confirmação.
 export async function executarTicketTool(
   nome: string,
   input: Record<string, unknown>
 ): Promise<unknown> {
   switch (nome) {
     case "listar_tickets":
-      return listarTickets(input as { status?: string; prioridade?: string });
-    case "buscar_ticket":
-      return buscarTicketPorId(input.id as number);
+      return listarTickets(validarArgs(argsSchemas.listar_tickets, input));
+    case "buscar_ticket": {
+      const { id } = validarArgs(argsSchemas.buscar_ticket, input);
+      return buscarTicketPorId(id);
+    }
     case "resumo_tickets":
       return contarTicketsPorStatus();
     case "alterar_status":
-      return alterarStatus(input.id as number, input.status as string);
     case "alterar_prioridade":
-      return alterarPrioridade(input.id as number, input.prioridade as string);
     case "adicionar_comentario":
-      return adicionarComentario(input.id as number, input.conteudo as string);
+      throw new Error(`${nome} exige confirmação humana e não pode ser executada diretamente.`);
     default:
       throw new Error(`Ferramenta desconhecida: ${nome}`);
   }

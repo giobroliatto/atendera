@@ -27,3 +27,12 @@ export interface Mensagem {
   conteudo: string;
   criadoEm: string;
 }
+
+// Ação de escrita proposta pelo agente do chat, aguardando confirmação humana (HITL)
+export interface AcaoPendente {
+  id: number;
+  tipo: 'alterar_status' | 'alterar_prioridade' | 'adicionar_comentario';
+  ticketId: number;
+  descricao: string;
+  estado: 'pendente' | 'confirmada' | 'cancelada' | 'falhou';
+}
