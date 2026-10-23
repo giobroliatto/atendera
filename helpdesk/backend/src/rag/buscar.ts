@@ -40,7 +40,16 @@ export async function buscarConhecimentoRelevante(
   const entradas = await prisma.baseConhecimento.findMany();
   if (entradas.length === 0) return [];
 
-  const embeddingPergunta = await gerarEmbedding(pergunta);
+  // O RAG é um complemento: se o modelo de embeddings não carregar (sem internet
+  // no primeiro download, por exemplo), o agente segue respondendo sem contexto extra
+  // em vez de a requisição inteira falhar.
+  let embeddingPergunta: number[];
+  try {
+    embeddingPergunta = await gerarEmbedding(pergunta);
+  } catch (err) {
+    console.warn(`[RAG] Busca ignorada, falha ao gerar embedding: ${err instanceof Error ? err.message : err}`);
+    return [];
+  }
 
   const comSimilaridade = entradas.map((e) => ({
     titulo: e.titulo,
