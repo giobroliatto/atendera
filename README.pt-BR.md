@@ -156,7 +156,7 @@ O [`src/mcp/server.ts`](helpdesk/backend/src/mcp/server.ts) expõe as ferramenta
 
 ## Como rodar localmente
 
-**Requisitos:** Node.js 22+ e npm. Você vai precisar de uma chave da [API da Anthropic](https://console.anthropic.com).
+**Requisitos:** Node.js 22+ e npm 11+ (o Node 24 já vem com ele; no Node 22, rode `npm install -g npm@11`). Você vai precisar de uma chave da [API da Anthropic](https://console.anthropic.com).
 
 ### 1. Backend
 
