@@ -156,7 +156,7 @@ JWT login, passwords hashed with `scrypt` and a random salt, rate limiting on fa
 
 ## Running locally
 
-**Requirements:** Node.js 22+ and npm. You'll need an [Anthropic API](https://console.anthropic.com) key.
+**Requirements:** Node.js 22+ and npm 11+ (Node 24 ships with it; on Node 22 run `npm install -g npm@11`). You'll need an [Anthropic API](https://console.anthropic.com) key.
 
 ### 1. Backend
 
