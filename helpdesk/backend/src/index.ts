@@ -11,7 +11,12 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middlewares
-app.use(cors()); // Permite requisições de qualquer origem (dev)
+// CORS: só o frontend pode chamar a API pelo navegador.
+// CORS_ORIGIN aceita várias origens separadas por vírgula.
+const origensPermitidas = (process.env.CORS_ORIGIN || "http://localhost:4200")
+  .split(",")
+  .map((o) => o.trim());
+app.use(cors({ origin: origensPermitidas }));
 app.use(express.json());
 
 // Rotas
