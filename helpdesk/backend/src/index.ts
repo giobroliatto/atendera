@@ -40,7 +40,7 @@ app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
 app.listen(PORT, () => {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   console.log(`\n✅ Backend rodando em http://localhost:${PORT}`);
-  console.log(`   ANTHROPIC_API_KEY: ${apiKey ? `✅ carregada (${apiKey.slice(0, 20)}...)` : "❌ NÃO definida!"}`);
+  console.log(`   ANTHROPIC_API_KEY: ${apiKey ? "✅ carregada" : "❌ NÃO definida!"}`);
   console.log(`   Rotas disponíveis:`);
   console.log(`   GET    /health`);
   console.log(`   GET    /tickets`);
