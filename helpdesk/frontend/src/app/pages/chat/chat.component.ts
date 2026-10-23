@@ -9,12 +9,14 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { ChatService } from '../../services/chat.service';
-import { Mensagem } from '../../models/ticket.model';
+import { Mensagem, AcaoPendente } from '../../models/ticket.model';
 import { MarkdownPipe } from '../../pipes/markdown.pipe';
+import { AcaoCardComponent } from './acao-card.component';
 
-// Estende Mensagem com o agente que respondeu (só em runtime, não persiste no banco)
+// Estende Mensagem com o agente que respondeu e as ações propostas (só em runtime, não persiste no banco)
 interface MensagemComAgente extends Mensagem {
   agente?: 'interativo' | 'relatorio';
+  acoes?: AcaoPendente[];
 }
 
 // Diálogo de confirmação de limpeza do histórico
@@ -44,7 +46,7 @@ export class DialogConfirmarLimparComponent {}
   imports: [
     CommonModule, FormsModule, MatCardModule, MatFormFieldModule,
     MatInputModule, MatButtonModule, MatIconModule, MatProgressSpinnerModule,
-    MatDialogModule, MarkdownPipe
+    MatDialogModule, MarkdownPipe, AcaoCardComponent
   ],
   templateUrl: './chat.component.html',
   styleUrl: './chat.component.scss'
@@ -130,6 +132,13 @@ export class ChatComponent implements OnInit {
         // ngZone.run() força o Angular a detectar a mudança e atualizar a tela
         this.ngZone.run(() => {
           streamingMsg.conteudo += chunk;
+          this.scrollDown();
+        });
+      },
+      (acao) => {
+        // Ação de escrita proposta: vira um cartão com Confirmar/Cancelar abaixo do balão
+        this.ngZone.run(() => {
+          (streamingMsg.acoes ??= []).push(acao);
           this.scrollDown();
         });
       },

@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { Mensagem } from '../models/ticket.model';
+import { Mensagem, AcaoPendente } from '../models/ticket.model';
 import { lerEventosSSE } from './sse';
 
 @Injectable({ providedIn: 'root' })
@@ -43,11 +43,13 @@ export class ChatService {
   }
 
   // Versão orquestrada: envia para /orquestrador/stream que classifica a intenção
-  // e delega para o agente correto. Inclui callback onAgente com o nome do agente escolhido.
+  // e delega para o agente correto. Inclui callback onAgente com o nome do agente escolhido
+  // e onAcao para cada ação de escrita proposta (que o usuário confirma no cartão).
   enviarMensagemOrquestrador(
     mensagem: string,
     onAgente: (agente: string) => void,
     onChunk: (chunk: string) => void,
+    onAcao: (acao: AcaoPendente) => void,
     onDone: () => void,
     onErro: (motivo?: string) => void,
     ticketId?: number
@@ -60,6 +62,7 @@ export class ChatService {
       lerEventosSSE(response, (data) => {
         if (data.agente) onAgente(data.agente);
         if (data.chunk)  onChunk(data.chunk);
+        if (data.acao)   onAcao(data.acao);
         if (data.done)   onDone();
         if (data.erro)   onErro(data.erro);
       })
@@ -73,5 +76,14 @@ export class ChatService {
 
   limparHistorico(): Observable<{ ok: boolean; removidas: number }> {
     return this.http.delete<{ ok: boolean; removidas: number }>(`${this.baseUrl}/historico`);
+  }
+
+  // Human-in-the-loop: a escrita proposta pelo agente só é executada por aqui
+  confirmarAcao(id: number): Observable<{ acao: AcaoPendente }> {
+    return this.http.post<{ acao: AcaoPendente }>(`http://localhost:3000/acoes/${id}/confirmar`, {});
+  }
+
+  cancelarAcao(id: number): Observable<{ acao: AcaoPendente }> {
+    return this.http.post<{ acao: AcaoPendente }>(`http://localhost:3000/acoes/${id}/cancelar`, {});
   }
 }

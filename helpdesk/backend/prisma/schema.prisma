@@ -75,3 +75,22 @@ model LogChamadaIA {
   ticketId     Int?
   criadoEm     DateTime @default(now())
 }
+
+// ================================================================
+// HUMAN-IN-THE-LOOP — ação de escrita proposta pelo agente
+//
+// As ferramentas de escrita do chat NÃO alteram o ticket: elas criam
+// uma AcaoPendente. A alteração só acontece quando o usuário clica em
+// "Confirmar" na interface (POST /acoes/:id/confirmar). Assim, nem o
+// modelo nem um prompt injection conseguem executar uma escrita sozinhos.
+// ================================================================
+model AcaoPendente {
+  id          Int       @id @default(autoincrement())
+  tipo        String    // "alterar_status" | "alterar_prioridade" | "adicionar_comentario"
+  ticketId    Int
+  dados       String    // argumentos validados da ação, serializados em JSON
+  descricao   String    // texto legível exibido no cartão de confirmação
+  estado      String    @default("pendente") // pendente | confirmada | cancelada | falhou
+  criadoEm    DateTime  @default(now())
+  resolvidoEm DateTime?
+}
