@@ -15,7 +15,7 @@ import { listarTickets, buscarTicketPorId, contarTicketsPorStatus, alterarStatus
 // ================================================================
 
 const server = new McpServer({
-  name: "helpdesk-ia",
+  name: "atendera",
   version: "1.0.0",
 });
 
@@ -149,7 +149,7 @@ async function main() {
   await server.connect(transport);
   // Não printa nada no stdout — apenas o protocolo MCP passa por lá
   // Logs vão para stderr para não poluir a comunicação
-  process.stderr.write("Servidor MCP do Helpdesk iniciado (stdio)\n");
+  process.stderr.write("Servidor MCP do Atendera iniciado (stdio)\n");
 }
 
 main().catch((err) => {

@@ -4,8 +4,8 @@ import { Router } from '@angular/router';
 import { Observable, tap } from 'rxjs';
 import { RespostaLogin, Usuario } from '../models/usuario.model';
 
-const CHAVE_TOKEN = 'helpdesk.token';
-const CHAVE_USUARIO = 'helpdesk.usuario';
+const CHAVE_TOKEN = 'atendera.token';
+const CHAVE_USUARIO = 'atendera.usuario';
 
 // Guarda o JWT recebido no login e o usuário logado.
 // O token vai no header Authorization de toda chamada ao backend:

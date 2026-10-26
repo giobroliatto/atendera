@@ -1,7 +1,7 @@
 {
-  "name": "backend",
+  "name": "atendera-backend",
   "version": "1.0.0",
-  "description": "",
+  "description": "API do Atendera: agentes de IA, RAG, human-in-the-loop, observabilidade e servidor MCP",
   "main": "index.js",
   "scripts": {
     "dev": "ts-node src/index.ts",

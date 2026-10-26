@@ -1,6 +1,8 @@
 <div align="center">
 
-# HelpDesk IA
+<img src="docs/logo.svg" width="72" alt="Logo do Atendera" />
+
+# Atendera
 
 **Um help desk interno em que agentes de IA fazem a triagem dos tickets, respondem perguntas sobre eles e agem sobre eles, com um humano confirmando cada alteração.**
 
@@ -13,16 +15,16 @@
 ![Claude API](https://img.shields.io/badge/Claude_API-D97757?logo=anthropic&logoColor=white)
 ![MCP](https://img.shields.io/badge/MCP-server-000000)
 
-[![CI](https://github.com/giobroliatto/helpdesk-ia/actions/workflows/ci.yml/badge.svg)](https://github.com/giobroliatto/helpdesk-ia/actions/workflows/ci.yml)
+[![CI](https://github.com/giobroliatto/atendera/actions/workflows/ci.yml/badge.svg)](https://github.com/giobroliatto/atendera/actions/workflows/ci.yml)
 
 </div>
 
 [English](README.md) · **Português**
 
 > [!NOTE]
-> O HelpDesk IA é um projeto de aprendizado: construí para praticar agentes de IA numa aplicação full stack de verdade, um conceito por vez (tool use, RAG, streaming, human-in-the-loop, orquestração multi-agente, guardrails e observabilidade).
+> O Atendera é um projeto de aprendizado: construí para praticar agentes de IA numa aplicação full stack de verdade, um conceito por vez (tool use, RAG, streaming, human-in-the-loop, orquestração multi-agente, guardrails e observabilidade).
 >
-> Ele foi feito para uma equipe brasileira, então a interface, os prompts e os comentários do código estão em português.
+> Ele foi feito para uma equipe brasileira, então a interface, os prompts e os comentários do código estão em português. O nome vem de *atender*, o que um help desk faz com cada chamado.
 
 ![Chat com o assistente propondo uma alteração de ticket que aguarda confirmação](docs/chat.png)
 

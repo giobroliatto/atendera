@@ -1,4 +1,4 @@
-# Como o HelpDesk IA funciona
+# Como o Atendera funciona
 
 [English](how-it-works.md) · **Português**
 

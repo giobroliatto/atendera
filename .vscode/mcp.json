@@ -1,6 +1,6 @@
 {
   "servers": {
-    "helpdesk-ia": {
+    "atendera": {
       "command": "npx",
       "args": ["ts-node", "--project", "tsconfig.json", "src/mcp/server.ts"],
       "cwd": "${workspaceFolder}/helpdesk/backend"

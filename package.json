@@ -1,7 +1,7 @@
 {
-  "name": "ia",
+  "name": "atendera-estudos",
   "version": "1.0.0",
-  "description": "",
+  "description": "Scripts de estudo do Atendera (primeiras chamadas à API e loop de tool use)",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
