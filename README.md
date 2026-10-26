@@ -16,6 +16,7 @@
 ![MCP](https://img.shields.io/badge/MCP-server-000000)
 
 [![CI](https://github.com/giobroliatto/atendera/actions/workflows/ci.yml/badge.svg)](https://github.com/giobroliatto/atendera/actions/workflows/ci.yml)
+[![MIT License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 </div>
 
@@ -278,7 +279,7 @@ All routes except the first two need `Authorization: Bearer <token>`.
 
 ## License
 
-Learning project, free to use for educational purposes.
+[MIT](LICENSE)
 
 ## Author
 

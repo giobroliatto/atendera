@@ -16,6 +16,7 @@
 ![MCP](https://img.shields.io/badge/MCP-server-000000)
 
 [![CI](https://github.com/giobroliatto/atendera/actions/workflows/ci.yml/badge.svg)](https://github.com/giobroliatto/atendera/actions/workflows/ci.yml)
+[![Licença MIT](https://img.shields.io/badge/licen%C3%A7a-MIT-green)](LICENSE)
 
 </div>
 
@@ -278,7 +279,7 @@ O [`docs/como-funciona.md`](docs/como-funciona.md) explica cada conceito em deta
 
 ## Licença
 
-Projeto de aprendizado, de uso livre para fins educacionais.
+[MIT](LICENSE)
 
 ## Autor
 
