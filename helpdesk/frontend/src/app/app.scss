@@ -1,4 +1,9 @@
 mat-toolbar {
+  .logo-app {
+    width: 30px;
+    height: 30px;
+    margin-right: 10px;
+  }
   a.active-link {
     background: rgba(255, 255, 255, 0.15);
     border-radius: 4px;
